@@ -1,10 +1,12 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
+import shutil
 from contextlib import contextmanager
 from functools import lru_cache
 from importlib import import_module
 
 import tomli
+import tomli_w
 
 
 # Avoid unnecessary I/O. All modifications of the file are for the wrapped backend.
@@ -68,35 +70,29 @@ def get_requires_for_build_editable(config_settings):
     return _supplement_requires("get_requires_for_build_editable", config_settings)
 
 
-# @contextmanager
-# def _modify_name():
-#     """
-#     Temporarily modify the name of the package being built.
-#
-#     This is used to allow the backend to modify the name of the package
-#     being built. This is useful for projects that want to build wheels
-#     with a different name than the package name.
-#     """
-#     with open("pyproject.toml", "rb") as f:
-#         pyproject = tomli.load(f)
-#
-#     original_pyproject = pyproject.copy()
-#     original_name = pyproject["project"]["name"]
-#     pyproject["project"]["name"] = original_name + "-cu11"
-#
-#     try:
-#         with open("pyproject.toml", "wb") as f:
-#             tomli_w.dump(pyproject, f)
-#         yield
-#     finally:
-#         with open("pyproject.toml", "wb") as f:
-#             tomli_w.dump(original_pyproject, f)
-#
-
-
 @contextmanager
 def _modify_name():
-    yield
+    """
+    Temporarily modify the name of the package being built.
+
+    This is used to allow the backend to modify the name of the package
+    being built. This is useful for projects that want to build wheels
+    with a different name than the package name.
+    """
+    pyproject_file = "pyproject.toml"
+    with open(pyproject_file, "rb") as f:
+        pyproject = tomli.load(f)
+
+    pyproject["project"]["name"] = pyproject["project"]["name"] + "-cu11"
+
+    try:
+        shutil.move(pyproject_file, pyproject_file + ".bak")
+        with open(pyproject_file, "wb") as f:
+            tomli_w.dump(pyproject, f)
+        yield
+    finally:
+        # Restore by moving rather than writing to avoid any formatting changes.
+        shutil.move(pyproject_file + ".bak", pyproject_file)
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
@@ -121,11 +117,15 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
 
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
     backend = _get_backend()
-    return backend.prepare_metadata_for_build_wheel(metadata_directory, config_settings)
+    with _modify_name():
+        return backend.prepare_metadata_for_build_wheel(
+            metadata_directory, config_settings
+        )
 
 
 def prepare_metadata_for_build_editable(metadata_directory, config_settings=None):
     backend = _get_backend()
-    return backend.prepare_metadata_for_build_editable(
-        metadata_directory, config_settings
-    )
+    with _modify_name():
+        return backend.prepare_metadata_for_build_editable(
+            metadata_directory, config_settings
+        )
