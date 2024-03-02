@@ -3,15 +3,13 @@
 from . import build
 from .build import (
     _get_backend,
-    # TODO: I think ruff deletes these because __all__ is being defined dynamically, but
-    # let's debug that later.
-    build_sdist,  # noqa
-    build_wheel,  # noqa
-    get_requires_for_build_sdist,  # noqa
-    get_requires_for_build_wheel,  # noqa
+    build_sdist,
+    build_wheel,
+    get_requires_for_build_sdist,
+    get_requires_for_build_wheel,
 )
 
-_all = [
+__all__ = [
     "build_wheel",
     "build_sdist",
     "_get_backend",
@@ -50,6 +48,4 @@ for name in (
 ):
     if hasattr(backend, name):
         globals()[name] = getattr(build, name)
-        _all.append(name)
-
-__all__ = _all
+        __all__.append(name)
