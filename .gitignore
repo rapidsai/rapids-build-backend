@@ -1,0 +1,16 @@
+__pycache__
+.cache
+.vscode
+*.swp
+.DS_Store
+.nfs*
+dist/
+env/
+eggs/
+.eggs/
+sdist/
+build/
+wheels/
+*.egg-info/
+*.egg
+*.whl
