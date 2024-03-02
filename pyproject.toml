@@ -1,0 +1,31 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.
+
+[build-system]
+# TODO: Consider using hatchling
+build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools",
+    "wheel",
+]
+
+[project]
+name = "rapids_builder"
+version = "0.0.1"
+description = "Custom PEP517 builder for RAPIDS"
+# TODO: Make the choice of underlying backend customizable (necessary for pure
+# Python projects like dask_cudf)
+dependencies = [
+    "scikit-build-core[pyproject]>=0.7.0",
+]
+license = { text = "Apache 2.0" }
+readme = { file = "README.md", content-type = "text/markdown" }
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+include = ["rapids_builder*"]
+
+[tool.ruff]
+lint.select = ["E", "F", "W", "I", "N", "UP"]
+lint.fixable = ["ALL"]
