@@ -59,7 +59,10 @@ def _supplement_requires(getter, config_settings):
 # The hooks in this file could be defined more programmatically by iterating over the
 # backend's attributes, but it's simpler to just define them explicitly and avoids any
 # potential issues with assuming the right pyproject.toml is readable at import time (we
-# need to load pyproject.toml to know what the build backend is).
+# need to load pyproject.toml to know what the build backend is). Note that this also
+# prevents us from using something like functools.wraps to copy the docstrings from the
+# backend's hooks to the rapids_builder hooks, but that's not a big deal because these
+# functions only executed by the build frontend and are not user-facing.
 def get_requires_for_build_wheel(config_settings):
     return _supplement_requires("get_requires_for_build_wheel", config_settings)
 
