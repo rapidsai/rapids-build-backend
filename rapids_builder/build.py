@@ -39,6 +39,39 @@ def _get_backend():
         )
 
 
+_VERSIONED_RAPIDS_WHEELS = [
+    "rmm" "pylibcugraphops",
+    "pylibcugraph" "nx-cugraph",
+    "dask-cudf",
+    "cuspatial",
+    "cuproj",
+    "cuml",
+    "cugraph",
+    "cudf",
+    "ptxcompiler",
+    "cubinlinker",
+    "cugraph-dgl",
+    "cugraph-pyg",
+    "cugraph-equivariant",
+    "raft-dask",
+    "pylibwholegraph",
+    "pylibraft",
+    "cuxfilter",
+    "cucim",
+    "ucx-py",
+    "ucxx",
+    "pynvjitlink",
+    "distributed-ucxx",
+]
+
+
+def _suffix_requires(requires):
+    """Add the cu11 suffix to the versioned rapids wheels."""
+    return [
+        req + "-cu11" if req in _VERSIONED_RAPIDS_WHEELS else req for req in requires
+    ]
+
+
 def _supplement_requires(getter, config_settings):
     """Add to the list of requirements for the build backend.
 
@@ -47,7 +80,7 @@ def _supplement_requires(getter, config_settings):
     pyproject = _get_pyproject()
 
     try:
-        requires = pyproject["tool"]["rapids_builder"]["requires"]
+        requires = _suffix_requires(pyproject["tool"]["rapids_builder"]["requires"])
     except KeyError:
         requires = []
 
@@ -84,13 +117,11 @@ def _modify_name():
     being built. This is useful for projects that want to build wheels
     with a different name than the package name.
     """
-    pyproject_file = "pyproject.toml"
-    bkp_pyproject_file = ".pyproject.toml.rapids_builder.bak"
-    with open(pyproject_file, "rb") as f:
-        pyproject = tomli.load(f)
-
+    pyproject = _get_pyproject()
     pyproject["project"]["name"] = pyproject["project"]["name"] + "-cu11"
 
+    pyproject_file = "pyproject.toml"
+    bkp_pyproject_file = ".pyproject.toml.rapids_builder.bak"
     try:
         shutil.move(pyproject_file, bkp_pyproject_file)
         with open(pyproject_file, "wb") as f:
