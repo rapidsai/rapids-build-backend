@@ -9,15 +9,17 @@ import tomli
 import tomli_w
 
 
-# Avoid unnecessary I/O. All modifications of the file are for the wrapped backend.
+# Avoid unnecessary I/O by caching.
 @lru_cache(1)
 def _get_pyproject():
+    """Parse and return the pyproject.toml file."""
     with open("pyproject.toml", "rb") as f:
         return tomli.load(f)
 
 
 @lru_cache(1)
 def _get_backend():
+    """Get the wrapped build backend specified in pyproject.toml."""
     pyproject = _get_pyproject()
 
     try:
@@ -37,27 +39,27 @@ def _get_backend():
         )
 
 
-def _supplement_requires(backend_getter, config_settings):
-    """
-    Add to the list of requirements for the build backend.
+def _supplement_requires(getter, config_settings):
+    """Add to the list of requirements for the build backend.
 
-    This is used to add requirements that are not defined in the PEP 517
-    backend's pyproject.toml file.
+    This is used to add the requirements specified in the rapids_builder table.
     """
-    with open("pyproject.toml", "rb") as f:
-        pyproject = tomli.load(f)
+    pyproject = _get_pyproject()
 
     try:
         requires = pyproject["tool"]["rapids_builder"]["requires"]
     except KeyError:
         requires = []
 
-    backend = _get_backend()
-    if (getter := getattr(backend, backend_getter, None)) is not None:
+    if (getter := getattr(_get_backend(), getter, None)) is not None:
         requires.extend(getter(config_settings))
     return requires
 
 
+# The hooks in this file could be defined more programmatically by iterating over the
+# backend's attributes, but it's simpler to just define them explicitly and avoids any
+# potential issues with assuming the right pyproject.toml is readable at import time (we
+# need to load pyproject.toml to know what the build backend is).
 def get_requires_for_build_wheel(config_settings):
     return _supplement_requires("get_requires_for_build_wheel", config_settings)
 
@@ -80,52 +82,53 @@ def _modify_name():
     with a different name than the package name.
     """
     pyproject_file = "pyproject.toml"
+    bkp_pyproject_file = ".pyproject.toml.rapids_builder.bak"
     with open(pyproject_file, "rb") as f:
         pyproject = tomli.load(f)
 
     pyproject["project"]["name"] = pyproject["project"]["name"] + "-cu11"
 
     try:
-        shutil.move(pyproject_file, pyproject_file + ".bak")
+        shutil.move(pyproject_file, bkp_pyproject_file)
         with open(pyproject_file, "wb") as f:
             tomli_w.dump(pyproject, f)
         yield
     finally:
         # Restore by moving rather than writing to avoid any formatting changes.
-        shutil.move(pyproject_file + ".bak", pyproject_file)
+        shutil.move(bkp_pyproject_file, pyproject_file)
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    backend = _get_backend()
     with _modify_name():
-        return backend.build_wheel(wheel_directory, config_settings, metadata_directory)
+        return _get_backend().build_wheel(
+            wheel_directory, config_settings, metadata_directory
+        )
 
 
 def build_sdist(sdist_directory, config_settings=None):
-    backend = _get_backend()
     with _modify_name():
-        return backend.build_sdist(sdist_directory, config_settings)
+        return _get_backend().build_sdist(sdist_directory, config_settings)
 
 
+# The three hooks below are optional and may not be implemented by the wrapped backend.
+# These definitions assume that they will only be called if the wrapped backend
+# implements them by virtue of the logic in __init__.py.
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
-    backend = _get_backend()
     with _modify_name():
-        return backend.build_editable(
+        return _get_backend().build_editable(
             wheel_directory, config_settings, metadata_directory
         )
 
 
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
-    backend = _get_backend()
     with _modify_name():
-        return backend.prepare_metadata_for_build_wheel(
+        return _get_backend().prepare_metadata_for_build_wheel(
             metadata_directory, config_settings
         )
 
 
 def prepare_metadata_for_build_editable(metadata_directory, config_settings=None):
-    backend = _get_backend()
     with _modify_name():
-        return backend.prepare_metadata_for_build_editable(
+        return _get_backend().prepare_metadata_for_build_editable(
             metadata_directory, config_settings
         )
