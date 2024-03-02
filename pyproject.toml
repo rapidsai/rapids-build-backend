@@ -15,10 +15,19 @@ description = "Custom PEP517 builder for RAPIDS"
 # TODO: Make the choice of underlying backend customizable (necessary for pure
 # Python projects like dask_cudf)
 dependencies = [
-    "scikit-build-core[pyproject]>=0.7.0",
+    "tomli",
+    "tomli-w",
 ]
 license = { text = "Apache 2.0" }
 readme = { file = "README.md", content-type = "text/markdown" }
+
+[project.optional-dependencies]
+scikit_build_core = [
+    "scikit-build-core[pyproject]>=0.7.0",
+]
+setuptools = [
+    "setuptool",
+]
 
 [tool.setuptools]
 license-files = ["LICENSE"]
