@@ -1,150 +1,55 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
-from contextlib import contextmanager
-from importlib import import_module
+from . import build
+from .build import (
+    _get_backend,
+    # TODO: I think ruff deletes these because __all__ is being defined dynamically, but
+    # let's debug that later.
+    build_sdist,  # noqa
+    build_wheel,  # noqa
+    get_requires_for_build_sdist,  # noqa
+    get_requires_for_build_wheel,  # noqa
+)
 
-import tomli
-import tomli_w
+_all = [
+    "build_wheel",
+    "build_sdist",
+    "_get_backend",
+    "get_requires_for_build_wheel",
+    "get_requires_for_build_sdist",
+]
 
+# The full set of hooks supported by build backends is enumerated in PEP517 and PEP 660.
+# We unconditionally support a superset of the required hooks but do not
+# unconditionally define all the optional hooks based on the following logic:
+# - build_wheel and build_sdist are required (which also means every wrapped backend
+#   will support them).
+# - get_requires_for_build_wheel and get_requires_for_build_sdist are optional, but we
+#   can provide safe default implementations because we always need to install any
+#   requirements specified in the tool.rapids_build table even if the wrapped backend
+#   doesn't add any.
+# - build_editable is optional, and we can't provide a safe default implementation
+#   because we won't support editable installs unless the wrapped backend does and the
+#   mere existence of the hook will change the behavior of the build frontend to think
+#   that the backend supports editable installs when rapids_builder only supports them
+#   if the wrapped backend does.
+# - prepare_metadata_for_build_wheel and prepare_metadata_for_build_editable are
+#   optional, and we can't provide safe default implementations because we won't create
+#   a dist-info directory unless the wrapped backend does it for us.
+# - get_requires_for_build_editable is optional. We could provide a safe default
+#   implementation, but there appears to be no guarantee that this won't change the
+#   behavior of the frontend even if build_editable is not defined, so it is safer to
+#   avoid defining it unless the wrapped backend does.
 
-def _get_backend():
-    with open("pyproject.toml", "rb") as f:
-        pyproject = tomli.load(f)
+backend = _get_backend()
+for name in (
+    "build_editable",
+    "get_requires_for_build_editable",
+    "prepare_metadata_for_build_editable",
+    "prepare_metadata_for_build_wheel",
+):
+    if hasattr(backend, name):
+        globals()[name] = getattr(build, name)
+        _all.append(name)
 
-    try:
-        build_backend = pyproject["tool"]["rapids_builder"]["build-backend"]
-    except KeyError:
-        raise ValueError(
-            "No build backend specified in pyproject.toml's tool.rapids_builder table"
-        )
-
-    try:
-        return import_module(build_backend)
-    except ImportError:
-        raise ValueError(
-            "Could not import build backend specified in pyproject.toml's "
-            "tool.rapids_builder table. Make sure you specified the right optional "
-            "dependency in your build-system.requires entry for rapids_builder."
-        )
-
-
-def _supplement_requires():
-    """
-    Add to the list of requirements for the build backend.
-
-    This is used to add requirements that are not defined in the PEP 517
-    backend's pyproject.toml file.
-    """
-    with open("pyproject.toml", "rb") as f:
-        pyproject = tomli.load(f)
-
-    # TODO: These should all probably not be optional keys.
-    rapids_builder_config = pyproject.get("tool", {}).get("rapids_builder", {})
-    # Default to using scikit-build-core for RAPIDS projects.
-    return rapids_builder_config.get("requires", [])
-
-
-def get_requires_for_build_wheel(config_settings):
-    backend = _get_backend()
-    requires = _supplement_requires()
-    if hasattr(backend, "get_requires_for_build_wheel"):
-        requires.extend(backend.get_requires_for_build_wheel(config_settings))
-    return requires
-
-
-def get_requires_for_build_sdist(config_settings):
-    backend = _get_backend()
-    requires = _supplement_requires()
-    if hasattr(backend, "get_requires_for_build_sdist"):
-        requires.extend(backend.get_requires_for_build_sdist(config_settings))
-    return requires
-
-
-def get_requires_for_build_editable(config_settings):
-    backend = _get_backend()
-    requires = _supplement_requires()
-    if hasattr(backend, "get_requires_for_build_editable"):
-        requires.extend(backend.get_requires_for_build_editable(config_settings))
-    return requires
-
-
-@contextmanager
-def _modify_name():
-    """
-    Temporarily modify the name of the package being built.
-
-    This is used to allow the backend to modify the name of the package
-    being built. This is useful for projects that want to build wheels
-    with a different name than the package name.
-    """
-    with open("pyproject.toml", "rb") as f:
-        pyproject = tomli.load(f)
-
-    original_pyproject = pyproject.copy()
-    original_name = pyproject["project"]["name"]
-    pyproject["project"]["name"] = original_name + "-cu11"
-
-    try:
-        with open("pyproject.toml", "wb") as f:
-            tomli_w.dump(pyproject, f)
-        yield
-    finally:
-        with open("pyproject.toml", "wb") as f:
-            tomli_w.dump(original_pyproject, f)
-
-
-def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    backend = _get_backend()
-    with _modify_name():
-        return backend.build_wheel(wheel_directory, config_settings, metadata_directory)
-
-
-def build_sdist(sdist_directory, config_settings=None):
-    backend = _get_backend()
-    with _modify_name():
-        return backend.build_sdist(sdist_directory, config_settings)
-
-
-def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
-    backend = _get_backend()
-    if hasattr(backend, "prepare_metadata_for_build_wheel"):
-        return backend.prepare_metadata_for_build_wheel(
-            metadata_directory, config_settings
-        )
-
-
-# TODO: Check if this also needs to be in the __getattr__ block.
-def prepare_metadata_for_build_editable(metadata_directory, config_settings=None):
-    backend = _get_backend()
-    if hasattr(backend, "prepare_metadata_for_build_editable"):
-        return backend.prepare_metadata_for_build_editable(
-            metadata_directory, config_settings
-        )
-
-
-# Use __getattr__ to delay lookup on build_editable until after we know the build
-# backend has already been installed. This is necessary because unlike the other
-# optional hooks, just having this method defined changes whether the build frontend
-# think the backend supports editable installs, whereas the prepare_* functions can be
-# defined as no-ops and have no effect on behavior.
-# TODO: Verify whether the above is true.
-# TODO: Cleaner solution: define all hooks in a separate module, then just return those
-# conditionally in this __getattr__ depending on whether the build backend supports
-# them.
-def __getattr__(name):
-    if name == "build_editable":
-        backend = _get_backend()
-
-        if hasattr(backend, "build_editable"):
-
-            def build_editable(
-                wheel_directory, config_settings=None, metadata_directory=None
-            ):
-                with _modify_name("rapids-build-wheel"):
-                    return backend.build_editable(
-                        wheel_directory, config_settings, metadata_directory
-                    )
-
-            return build_editable
-
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+__all__ = _all
