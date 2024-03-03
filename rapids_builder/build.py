@@ -40,8 +40,10 @@ def _get_backend():
 
 
 _VERSIONED_RAPIDS_WHEELS = [
-    "rmm" "pylibcugraphops",
-    "pylibcugraph" "nx-cugraph",
+    "rmm",
+    "pylibcugraphops",
+    "pylibcugraph",
+    "nx-cugraph",
     "dask-cudf",
     "cuspatial",
     "cuproj",
@@ -109,16 +111,28 @@ def get_requires_for_build_editable(config_settings):
 
 
 @contextmanager
-def _modify_name():
+def _modify_name_and_requirements():
     """
-    Temporarily modify the name of the package being built.
+    Temporarily modify the name and dependencies of the package being built.
 
     This is used to allow the backend to modify the name of the package
     being built. This is useful for projects that want to build wheels
     with a different name than the package name.
     """
     pyproject = _get_pyproject()
-    pyproject["project"]["name"] = pyproject["project"]["name"] + "-cu11"
+    project_data = pyproject["project"]
+    pyproject["project"]["name"] = project_data["name"] + "-cu11"
+
+    dependencies = pyproject["project"].get("dependencies")
+    if dependencies is not None:
+        project_data["dependencies"] = _suffix_requires(project_data["dependencies"])
+
+    optional_dependencies = pyproject["project"].get("optional-dependencies")
+    if optional_dependencies is not None:
+        project_data["optional-dependencies"] = {
+            extra: _suffix_requires(deps)
+            for extra, deps in optional_dependencies.items()
+        }
 
     pyproject_file = "pyproject.toml"
     bkp_pyproject_file = ".pyproject.toml.rapids_builder.bak"
@@ -133,14 +147,14 @@ def _modify_name():
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    with _modify_name():
+    with _modify_name_and_requirements():
         return _get_backend().build_wheel(
             wheel_directory, config_settings, metadata_directory
         )
 
 
 def build_sdist(sdist_directory, config_settings=None):
-    with _modify_name():
+    with _modify_name_and_requirements():
         return _get_backend().build_sdist(sdist_directory, config_settings)
 
 
@@ -148,21 +162,21 @@ def build_sdist(sdist_directory, config_settings=None):
 # These definitions assume that they will only be called if the wrapped backend
 # implements them by virtue of the logic in __init__.py.
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
-    with _modify_name():
+    with _modify_name_and_requirements():
         return _get_backend().build_editable(
             wheel_directory, config_settings, metadata_directory
         )
 
 
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
-    with _modify_name():
+    with _modify_name_and_requirements():
         return _get_backend().prepare_metadata_for_build_wheel(
             metadata_directory, config_settings
         )
 
 
 def prepare_metadata_for_build_editable(metadata_directory, config_settings=None):
-    with _modify_name():
+    with _modify_name_and_requirements():
         return _get_backend().prepare_metadata_for_build_editable(
             metadata_directory, config_settings
         )
