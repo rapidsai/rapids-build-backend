@@ -12,8 +12,6 @@ requires = [
 name = "rapids_builder"
 version = "0.0.1"
 description = "Custom PEP517 builder for RAPIDS"
-# TODO: Make the choice of underlying backend customizable (necessary for pure
-# Python projects like dask_cudf)
 dependencies = [
     "tomli",
     "tomli-w",
@@ -26,7 +24,7 @@ scikit-build-core = [
     "scikit-build-core[pyproject]>=0.7.0",
 ]
 setuptools = [
-    "setuptool",
+    "setuptools",
 ]
 
 [tool.setuptools]
