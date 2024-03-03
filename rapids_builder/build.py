@@ -155,7 +155,7 @@ def _modify_name_and_requirements():
     """
     pyproject = _get_pyproject()
     project_data = pyproject["project"]
-    pyproject["project"]["name"] = project_data["name"] + _get_cuda_suffix()
+    project_data["name"] += _get_cuda_suffix()
 
     dependencies = pyproject["project"].get("dependencies")
     if dependencies is not None:
