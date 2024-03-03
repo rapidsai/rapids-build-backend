@@ -41,17 +41,24 @@ def _get_backend():
         )
 
 
-def _get_cuda_suffix():
+@lru_cache(1)
+def _get_cuda_major():
     """Get the CUDA suffix from the pyproject.toml file."""
     try:
         process_output = subprocess.run(["nvcc", "--version"], capture_output=True)
         output_lines = process_output.stdout.decode().splitlines()
         match = re.search(r"release (\d+)", output_lines[3])
-        return f"-cu{match.group(1)}"
+        return match.group(1)
     except BaseException as e:
         raise ValueError(
             "Could not determine the CUDA version. Make sure nvcc is in your PATH."
         ) from e
+
+
+@lru_cache(1)
+def _get_cuda_suffix():
+    """Get the CUDA suffix from the pyproject.toml file."""
+    return f"-cu{_get_cuda_major()}"
 
 
 _VERSIONED_RAPIDS_WHEELS = [
@@ -92,6 +99,11 @@ def _suffix_requires(requires):
                 new_requires.append(req.replace(known_req, known_req + suffix))
                 break
         else:
+            # cupy is a special case because it's not a RAPIDS wheel.
+            if "cupy" in req:
+                new_requires.append(
+                    req.replace("cupy", f"cupy-cuda{_get_cuda_major()}x")
+                )
             new_requires.append(req)
     return new_requires
 
