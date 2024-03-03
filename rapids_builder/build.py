@@ -43,22 +43,43 @@ def _get_backend():
 
 @lru_cache(1)
 def _get_cuda_major():
-    """Get the CUDA suffix from the pyproject.toml file."""
+    """Get the CUDA suffix based on nvcc.
+
+    Returns None if nvcc is not in the PATH.
+    """
+    nvcc_exists = subprocess.run(["which", "nvcc"], capture_output=True).returncode == 0
+    if not nvcc_exists:
+        pyproject = _get_pyproject()
+        if not pyproject["tool"]["rapids_builder"].get("allow-no-cuda", False):
+            raise ValueError(
+                "Could not determine the CUDA version. Make sure nvcc is in your PATH."
+            )
+        return None
+
     try:
         process_output = subprocess.run(["nvcc", "--version"], capture_output=True)
-        output_lines = process_output.stdout.decode().splitlines()
+    except subprocess.CalledProcessError as e:
+        raise ValueError("Failed to get version from nvcc.") from e
+
+    output_lines = process_output.stdout.decode().splitlines()
+
+    try:
         match = re.search(r"release (\d+)", output_lines[3])
         return match.group(1)
     except BaseException as e:
         raise ValueError(
-            "Could not determine the CUDA version. Make sure nvcc is in your PATH."
+            "Failed to parse CUDA version from nvcc --version output."
         ) from e
 
 
-@lru_cache(1)
 def _get_cuda_suffix():
-    """Get the CUDA suffix from the pyproject.toml file."""
-    return f"-cu{_get_cuda_major()}"
+    """Get the CUDA suffix based on nvcc.
+
+    Returns an empty string if nvcc is not in the PATH.
+    """
+    if (major := _get_cuda_major()) is None:
+        return ""
+    return f"-cu{major}"
 
 
 _VERSIONED_RAPIDS_WHEELS = [
@@ -99,12 +120,13 @@ def _suffix_requires(requires):
                 new_requires.append(req.replace(known_req, known_req + suffix))
                 break
         else:
-            # cupy is a special case because it's not a RAPIDS wheel.
-            if "cupy" in req:
-                new_requires.append(
-                    req.replace("cupy", f"cupy-cuda{_get_cuda_major()}x")
-                )
-            new_requires.append(req)
+            # cupy is a special case because it's not a RAPIDS wheel. If we can't
+            # determine the local CUDA version, then we fall back to making the sdist of
+            # cupy on PyPI the dependency.
+            if "cupy" in req and (major := _get_cuda_major()) is not None:
+                new_requires.append(req.replace("cupy", f"cupy-cuda{major}x"))
+            else:
+                new_requires.append(req)
     return new_requires
 
 
