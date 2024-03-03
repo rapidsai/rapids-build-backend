@@ -1,6 +1,8 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
+import re
 import shutil
+import subprocess
 from contextlib import contextmanager
 from functools import lru_cache
 from importlib import import_module
@@ -39,6 +41,19 @@ def _get_backend():
         )
 
 
+def _get_cuda_suffix():
+    """Get the CUDA suffix from the pyproject.toml file."""
+    try:
+        process_output = subprocess.run(["nvcc", "--version"], capture_output=True)
+        output_lines = process_output.stdout.decode().splitlines()
+        match = re.search(r"release (\d+)", output_lines[3])
+        return f"-cu{match.group(1)}"
+    except BaseException as e:
+        raise ValueError(
+            "Could not determine the CUDA version. Make sure nvcc is in your PATH."
+        ) from e
+
+
 _VERSIONED_RAPIDS_WHEELS = [
     "rmm",
     "pylibcugraphops",
@@ -68,10 +83,17 @@ _VERSIONED_RAPIDS_WHEELS = [
 
 
 def _suffix_requires(requires):
-    """Add the cu11 suffix to the versioned rapids wheels."""
-    return [
-        req + "-cu11" if req in _VERSIONED_RAPIDS_WHEELS else req for req in requires
-    ]
+    """Add the CUDA suffix to any versioned RAPIDS wheels in requires."""
+    new_requires = []
+    suffix = _get_cuda_suffix()
+    for req in requires:
+        for known_req in _VERSIONED_RAPIDS_WHEELS:
+            if known_req in req:
+                new_requires.append(req.replace(known_req, known_req + suffix))
+                break
+        else:
+            new_requires.append(req)
+    return new_requires
 
 
 def _supplement_requires(getter, config_settings):
@@ -121,7 +143,7 @@ def _modify_name_and_requirements():
     """
     pyproject = _get_pyproject()
     project_data = pyproject["project"]
-    pyproject["project"]["name"] = project_data["name"] + "-cu11"
+    pyproject["project"]["name"] = project_data["name"] + _get_cuda_suffix()
 
     dependencies = pyproject["project"].get("dependencies")
     if dependencies is not None:
