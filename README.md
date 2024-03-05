@@ -27,6 +27,11 @@ The most sensible choice might be on by default, but with a switch to turn off.
 In theory any dependency that doesn't need suffixing could also go into `build-system.requires`.
 I think it's easier to teach that all dependencies other than `rapids_builder` itself should to into `tool.rapids_builder`, but I don't know how others feel.
 
+## Future improvements
+
+- Currently the list of wheels requiring suffixes is a variable in build.py. Ideally we could query this from some more consistent location such as the RAPIDS PyPI index.
+- If https://github.com/rapidsai/dependency-file-generator/pull/48 is completed we can make dfg a dependency of this builder and use it to rewrite the dependency list instead of the manual logic here.
+
 ## Rejected ideas
 
-- We could also include the rewrite of VERSION that we use for RAPIDS builds, but this is really more specific to our release process than the general process of building our wheels.
+- We could also include the rewrite of VERSION that we use for RAPIDS builds, but this is really more specific to our release process than the general process of building our wheels. I don't think someone building a wheel locally should see the same version as what we produce via CI. If we really wanted we could pull dunamai as a dependency and write a different version here, though.
