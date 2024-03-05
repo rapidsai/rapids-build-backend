@@ -11,8 +11,9 @@ The base configuration of `rapids_builder` is identical to the `build-system` ta
 - The required `tool.rapids_builder.build-backend` key specifies the backend. In this case, `rapids_builder` will be the value of `build-system.build-backend`, while the wrapped builder should be set to the value of `tool.rapids_builder.build-backend`.
 - The optional `tool.rapids_builder.requires` list specifies build requirements. Any known RAPIDS dependency in this list will be suffixed with a CUDA suffix. Other dependencies will be treated as if they were in `build-system.requires`.
 - The optional `tool.rapids_builder.allow-no-cuda` flag indicates whether a package allows building on a system without nvcc. It defaults to False. If True, then no suffixes are added to the package name itself or any of its dependencies.
+- The optional `tool.rapids_builder.commit-file` key specifies a file to write the current git commit to. The commit will be written in a line of the form `__git_commit__ = "${commit}"`. If such a line already exists, it is overwritten. If the key is not specified, nothing is written. If git cannot be found, `rapids_builder` will proceed as though no file was specified -- this is necessary because there are situations where you could be building from the source without a git repository.
 
-## TODO: We need to determine whether this behavior can always be on or if it needs to be configurable.
+## TODO: We need to determine whether behaviors can always be on or if it needs to be configurable.
 Some cases to consider:
 - Building wheels: Here we definitely need to change everything (name, build dependencies, install dependencies).
 - Installing (not building wheels): In this case the name doesn't matter because the wheel is ephemeral (the package files are immediately put into the site directory). If we do not specify --no-deps, then we do want the dependencies to be installed with the appropriate suffixes.
@@ -26,6 +27,13 @@ The most sensible choice might be on by default, but with a switch to turn off.
 
 In theory any dependency that doesn't need suffixing could also go into `build-system.requires`.
 I think it's easier to teach that all dependencies other than `rapids_builder` itself should to into `tool.rapids_builder`, but I don't know how others feel.
+
+## TODO: Do we like how the commit writing is configured?
+We could default to writing to the `project.name/_version.py` file, but then we would need to introduce a second flag to turn off that behavior.
+Also there's no guarantee that name is correct since the distribution name can be mismatched to the package.
+
+We also need to decide whether we want to write the commit if the file in question doesn't container a `__git_commit__` line at all.
+Currently, it does.
 
 ## Future improvements
 

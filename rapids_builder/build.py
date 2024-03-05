@@ -1,5 +1,6 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
+import os
 import re
 import shutil
 import subprocess
@@ -20,12 +21,20 @@ def _get_pyproject():
 
 
 @lru_cache(1)
+def _get_tool_table():
+    """Get the rapids_builder tool table from pyproject.toml."""
+    pyproject = _get_pyproject()
+    try:
+        return pyproject["tool"]["rapids_builder"]
+    except KeyError as e:
+        raise ValueError("No rapids_builder table in pyproject.toml") from e
+
+
+@lru_cache(1)
 def _get_backend():
     """Get the wrapped build backend specified in pyproject.toml."""
-    pyproject = _get_pyproject()
-
     try:
-        build_backend = pyproject["tool"]["rapids_builder"]["build-backend"]
+        build_backend = _get_tool_table()["build-backend"]
     except KeyError:
         raise ValueError(
             "No build backend specified in pyproject.toml's tool.rapids_builder table"
@@ -49,8 +58,7 @@ def _get_cuda_major():
     """
     nvcc_exists = subprocess.run(["which", "nvcc"], capture_output=True).returncode == 0
     if not nvcc_exists:
-        pyproject = _get_pyproject()
-        if not pyproject["tool"]["rapids_builder"].get("allow-no-cuda", False):
+        if not _get_tool_table().get("allow-no-cuda", False):
             raise ValueError(
                 "Could not determine the CUDA version. Make sure nvcc is in your PATH."
             )
@@ -135,10 +143,8 @@ def _supplement_requires(getter, config_settings):
 
     This is used to add the requirements specified in the rapids_builder table.
     """
-    pyproject = _get_pyproject()
-
     try:
-        requires = _suffix_requires(pyproject["tool"]["rapids_builder"]["requires"])
+        requires = _suffix_requires(_get_tool_table()["requires"])
     except KeyError:
         requires = []
 
@@ -166,8 +172,65 @@ def get_requires_for_build_editable(config_settings):
     return _supplement_requires("get_requires_for_build_editable", config_settings)
 
 
+@lru_cache(1)
+def _get_git_commit():
+    """Get the current git commit.
+
+    Returns None if git is not in the PATH or if it fails to find the commit.
+    """
+    git_exists = subprocess.run(["which", "git"], capture_output=True).returncode == 0
+    if git_exists:
+        try:
+            process_output = subprocess.run(
+                ["git", "rev-parse", "HEAD"], capture_output=True
+            )
+            return process_output.stdout.decode().strip()
+        except subprocess.CalledProcessError:
+            pass
+    return None
+
+
 @contextmanager
-def _modify_name_and_requirements():
+def _edit_git_commit():
+    """
+    Temporarily modify the git commit of the package being built.
+
+    This is useful for projects that want to embed the current git commit in the package
+    at build time.
+    """
+    commit_file = _get_tool_table().get("commit-file")
+    commit = _get_git_commit()
+
+    if commit_file is not None and commit is not None:
+        bkp_commit_file = f".{os.path.basename(commit_file)}.rapids_builder.bak"
+        try:
+            with open(commit_file) as f:
+                lines = f.readlines()
+
+            shutil.move(commit_file, bkp_commit_file)
+
+            with open(commit_file, "w") as f:
+                wrote = False
+                for line in lines:
+                    if "__git_commit__" in line:
+                        f.write(f'__git_commit__ = "{commit}"\n')
+                        wrote = True
+                    else:
+                        f.write(line)
+                # If no git commit line was found, write it at the end of the file.
+                if not wrote:
+                    f.write(f'__git_commit__ = "{commit}"\n')
+
+            yield
+        finally:
+            # Restore by moving rather than writing to avoid any formatting changes.
+            shutil.move(bkp_commit_file, commit_file)
+    else:
+        yield
+
+
+@contextmanager
+def _edit_pyproject():
     """
     Temporarily modify the name and dependencies of the package being built.
 
@@ -203,14 +266,14 @@ def _modify_name_and_requirements():
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    with _modify_name_and_requirements():
+    with _edit_pyproject(), _edit_git_commit():
         return _get_backend().build_wheel(
             wheel_directory, config_settings, metadata_directory
         )
 
 
 def build_sdist(sdist_directory, config_settings=None):
-    with _modify_name_and_requirements():
+    with _edit_pyproject(), _edit_git_commit():
         return _get_backend().build_sdist(sdist_directory, config_settings)
 
 
@@ -218,21 +281,21 @@ def build_sdist(sdist_directory, config_settings=None):
 # These definitions assume that they will only be called if the wrapped backend
 # implements them by virtue of the logic in __init__.py.
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
-    with _modify_name_and_requirements():
+    with _edit_pyproject(), _edit_git_commit():
         return _get_backend().build_editable(
             wheel_directory, config_settings, metadata_directory
         )
 
 
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
-    with _modify_name_and_requirements():
+    with _edit_pyproject():
         return _get_backend().prepare_metadata_for_build_wheel(
             metadata_directory, config_settings
         )
 
 
 def prepare_metadata_for_build_editable(metadata_directory, config_settings=None):
-    with _modify_name_and_requirements():
+    with _edit_pyproject():
         return _get_backend().prepare_metadata_for_build_editable(
             metadata_directory, config_settings
         )
