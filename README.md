@@ -13,13 +13,16 @@ The base configuration of `rapids_builder` is identical to the `build-system` ta
 - The optional `tool.rapids_builder.allow-no-cuda` flag indicates whether a package allows building on a system without nvcc. It defaults to False. If True, then no suffixes are added to the package name itself or any of its dependencies.
 - The optional `tool.rapids_builder.commit-file` key specifies a file to write the current git commit to. The commit will be written in a line of the form `__git_commit__ = "${commit}"`. If such a line already exists, it is overwritten. If the key is not specified, nothing is written. If git cannot be found, `rapids_builder` will proceed as though no file was specified -- this is necessary because there are situations where you could be building from the source without a git repository.
 
+In addition, the following environment variables are supported:
+- `RAPIDS_ONLY_RELEASE_DEPS`: If set, this variable will prevent RAPIDS packages in dependency lists from being suffixed with a '>=0.0.0a0' version specifier. The default is to append this specifier, which allows the use of RAPIDS nightlies to satisfy nightlies. This behavior is generally desirable during the RAPIDS development cycle.
+
 ## TODO: We need to determine whether behaviors can always be on or if it needs to be configurable.
 Some cases to consider:
 - Building wheels: Here we definitely need to change everything (name, build dependencies, install dependencies).
 - Installing (not building wheels): In this case the name doesn't matter because the wheel is ephemeral (the package files are immediately put into the site directory). If we do not specify --no-deps, then we do want the dependencies to be installed with the appropriate suffixes.
 - Editable installs: Again, the wheel name doesn't matter here since the wheel is ephemeral (in this case we end up pointing back to the source dir or to build `so`s) so the rename is fine. The dependencies do need to be renamed as above.
 - No build isolation: In this case the build dependencies don't matter. Otherwise everything is the same, regardless of whether we build wheels or install (editable or not).
-- conda builds: conda builds should effectively be equivalent to `pip install --no-build-isolation --no-deps`, so none of the changes matter. If meta.yaml parses pyproject.toml for any data, it must happen before the `pip install` call. However, we should verify this to be safe.
+- conda builds: conda builds should effectively be equivalent to `pip install --no-build-isolation --no-deps`, so none of the changes matter. If meta.yaml parses pyproject.toml for any data, it must happen before the `pip install` call.
 
 The most sensible choice might be on by default, but with a switch to turn off.
 

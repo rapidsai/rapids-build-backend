@@ -10,6 +10,7 @@ from importlib import import_module
 
 import tomli
 import tomli_w
+from packaging.requirements import Requirement, SpecifierSet
 
 
 # Avoid unnecessary I/O by caching.
@@ -117,24 +118,39 @@ _VERSIONED_RAPIDS_WHEELS = [
     "distributed-ucxx",
 ]
 
+_UNVERSIONED_RAPIDS_WHEELS = [
+    "dask-cuda",
+    "rapids-dask-dependency",
+    "ptxcompiler",
+    "cubinlinker",
+]
+
 
 def _suffix_requires(requires):
     """Add the CUDA suffix to any versioned RAPIDS wheels in requires."""
     new_requires = []
     suffix = _get_cuda_suffix()
     for req in requires:
-        for known_req in _VERSIONED_RAPIDS_WHEELS:
-            if known_req in req:
-                new_requires.append(req.replace(known_req, known_req + suffix))
-                break
+        req = Requirement(req)
+
+        is_versioned_wheel = any(req.name == w for w in _VERSIONED_RAPIDS_WHEELS)
+        is_unversioned_wheel = any(req.name == w for w in _UNVERSIONED_RAPIDS_WHEELS)
+        only_release_deps = "RAPIDS_ONLY_RELEASE_DEPS" in os.environ
+
+        # cupy is a special case because it's not a RAPIDS wheel. If we can't
+        # determine the local CUDA version, then we fall back to making the sdist of
+        # cupy on PyPI the dependency.
+        if req.name == "cupy" and (major := _get_cuda_major()) is not None:
+            req.name += f"-cuda{major}x"
         else:
-            # cupy is a special case because it's not a RAPIDS wheel. If we can't
-            # determine the local CUDA version, then we fall back to making the sdist of
-            # cupy on PyPI the dependency.
-            if "cupy" in req and (major := _get_cuda_major()) is not None:
-                new_requires.append(req.replace("cupy", f"cupy-cuda{major}x"))
-            else:
-                new_requires.append(req)
+            if is_versioned_wheel:
+                req.name += suffix
+
+            # Allow nightlies of RAPIDS packages except in release builds.
+            if (is_versioned_wheel or is_unversioned_wheel) and not only_release_deps:
+                req.specifier &= SpecifierSet(">=0.0.0")
+
+        new_requires.append(str(req))
     return new_requires
 
 
