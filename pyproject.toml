@@ -1,7 +1,6 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 [build-system]
-# TODO: Consider using hatchling
 build-backend = "setuptools.build_meta"
 requires = [
     "setuptools",
@@ -25,6 +24,7 @@ scikit-build-core = [
 ]
 setuptools = [
     "setuptools",
+    "wheel",
 ]
 
 [tool.setuptools]
