@@ -148,7 +148,7 @@ def _suffix_requires(requires):
 
             # Allow nightlies of RAPIDS packages except in release builds.
             if (is_versioned_wheel or is_unversioned_wheel) and not only_release_deps:
-                req.specifier &= SpecifierSet(">=0.0.0")
+                req.specifier &= SpecifierSet(">=0.0.0a0")
 
         new_requires.append(str(req))
     return new_requires
