@@ -22,7 +22,7 @@ Some cases to consider:
 - Installing (not building wheels): In this case the name doesn't matter because the wheel is ephemeral (the package files are immediately put into the site directory). If we do not specify --no-deps, then we do want the dependencies to be installed with the appropriate suffixes.
 - Editable installs: Again, the wheel name doesn't matter here since the wheel is ephemeral (in this case we end up pointing back to the source dir or to build `so`s) so the rename is fine. The dependencies do need to be renamed as above.
 - No build isolation: In this case the build dependencies don't matter. Otherwise everything is the same, regardless of whether we build wheels or install (editable or not).
-- conda builds: conda builds should effectively be equivalent to `pip install --no-build-isolation --no-deps`, so none of the changes matter. If meta.yaml parses pyproject.toml for any data, it must happen before the `pip install` call.
+- conda builds: conda builds should effectively be equivalent to `pip install --no-build-isolation --no-deps`, so none of the changes matter. If meta.yaml parses pyproject.toml for any data, it must happen before the `pip install` call. That said, if it makes folks uncomfortable we can always make this configurable.
 
 The most sensible choice might be on by default, but with a switch to turn off.
 
