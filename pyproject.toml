@@ -12,6 +12,7 @@ name = "rapids_builder"
 version = "0.0.1"
 description = "Custom PEP517 builder for RAPIDS"
 dependencies = [
+    "packaging",
     "tomli",
     "tomli-w",
 ]
