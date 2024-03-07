@@ -91,6 +91,7 @@ def _get_cuda_suffix():
     return f"-cu{major}"
 
 
+# Wheels with a CUDA suffix.
 _VERSIONED_RAPIDS_WHEELS = [
     "rmm",
     "pylibcugraphops",
@@ -118,12 +119,17 @@ _VERSIONED_RAPIDS_WHEELS = [
     "distributed-ucxx",
 ]
 
+# Wheels without a CUDA suffix.
 _UNVERSIONED_RAPIDS_WHEELS = [
     "dask-cuda",
     "rapids-dask-dependency",
+]
+
+# Wheels that don't release regular alpha versions
+_CUDA_11_ONLY_WHEELS = (
     "ptxcompiler",
     "cubinlinker",
-]
+)
 
 
 def _suffix_requires(requires):
@@ -133,21 +139,35 @@ def _suffix_requires(requires):
     for req in requires:
         req = Requirement(req)
 
-        is_versioned_wheel = any(req.name == w for w in _VERSIONED_RAPIDS_WHEELS)
-        is_unversioned_wheel = any(req.name == w for w in _UNVERSIONED_RAPIDS_WHEELS)
-        only_release_deps = "RAPIDS_ONLY_RELEASE_DEPS" in os.environ
-
         # cupy is a special case because it's not a RAPIDS wheel. If we can't
         # determine the local CUDA version, then we fall back to making the sdist of
         # cupy on PyPI the dependency.
-        if req.name == "cupy" and (major := _get_cuda_major()) is not None:
+        major = _get_cuda_major()
+        if req.name == "cupy" and major is not None:
             req.name += f"-cuda{major}x"
         else:
+            is_cuda_11_wheel = any(req.name == w for w in _CUDA_11_ONLY_WHEELS)
+            if is_cuda_11_wheel:
+                # These wheels only exist for CUDA 11.
+                if major != "11":
+                    continue
+
+            is_versioned_wheel = any(req.name == w for w in _VERSIONED_RAPIDS_WHEELS)
+            is_unversioned_wheel = any(
+                req.name == w for w in _UNVERSIONED_RAPIDS_WHEELS
+            )
+            only_release_deps = "RAPIDS_ONLY_RELEASE_DEPS" in os.environ
+
             if is_versioned_wheel:
                 req.name += suffix
 
-            # Allow nightlies of RAPIDS packages except in release builds.
-            if (is_versioned_wheel or is_unversioned_wheel) and not only_release_deps:
+            # Allow nightlies of RAPIDS packages except in release builds. Also,
+            # ptxcompiler and cubinlinker don't release regular alpha versions.
+            if (
+                (is_versioned_wheel or is_unversioned_wheel)
+                and not only_release_deps
+                and not is_cuda_11_wheel
+            ):
                 req.specifier &= SpecifierSet(">=0.0.0a0")
 
         new_requires.append(str(req))
