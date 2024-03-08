@@ -10,7 +10,8 @@ from importlib import import_module
 
 import tomli
 import tomli_w
-from packaging.requirements import Requirement, SpecifierSet
+from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 
 
 # Avoid unnecessary I/O by caching.
