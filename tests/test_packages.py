@@ -11,11 +11,11 @@ from pathlib import Path
 DIR = Path(__file__).parent.resolve()
 
 
-def test_simple_setuptools(tmp_path, builder_env):
+def test_simple_setuptools(tmp_path, env):
     package_dir = tmp_path / "pkg"
     shutil.copytree(DIR / "packages" / "simple_setuptools", package_dir)
 
-    builder_env.wheel(str(package_dir))
+    env.wheel(str(package_dir))
 
     wheel = glob.glob(str(package_dir / "*.whl"))[0]
     p = BytesParser()
