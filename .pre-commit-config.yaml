@@ -16,6 +16,12 @@ repos:
       - id: ruff
         args: ["--fix"]
       - id: ruff-format
+  - repo: https://github.com/rapidsai/pre-commit-hooks
+    rev: v0.0.1
+    hooks:
+      - id: verify-copyright
+        args: ["--target-branch", "main"]
+
 
 default_language_version:
       python: python3
