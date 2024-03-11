@@ -1,0 +1,29 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.
+
+[build-system]
+build-backend = "rapids_builder"
+requires = [
+    "rapids_builder[setuptools]",
+]
+
+[project]
+name = "simple_setuptools"
+version = "0.0.1"
+requires-python = ">=3.9"
+dependencies = [
+    # RAPIDS dependency with no constraint
+    "rmm",
+]
+
+[project.optional-dependencies]
+test = [
+    # Shouldn't end up versioned
+    "dask-cuda==24.4.*",
+]
+
+[tool.rapids_builder]
+build-backend = "setuptools.build_meta"
+requires = [
+    # RAPIDS dependency with no constraint
+    "rmm",
+]
