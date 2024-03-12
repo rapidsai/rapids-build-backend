@@ -36,8 +36,18 @@ class Config:
             # If overrides are allowed environment variables take precedence over the
             # config_settings dict.
             if allows_override:
-                if (env_var_name := f"RAPIDS_{name.upper()}") in os.environ:
-                    return os.environ[env_var_name]
+                if (env_var := f"RAPIDS_{name.upper()}") in os.environ:
+                    # Anything overridable by an environment variable must have a
+                    # default. The input is a string, but we need to convert it to the
+                    # appropriate type, which we determine based on the default value.
+                    if isinstance(default_value, bool):
+                        str_val = os.environ[env_var]
+                        if str_val not in ("true", "false"):
+                            raise ValueError(
+                                f"{env_var} must be 'true' or 'false', not {str_val}"
+                            )
+                        return str_val == "true"
+                    return os.environ[env_var]
 
                 if config_name in self.config_settings:
                     return self.config_settings[config_name]
