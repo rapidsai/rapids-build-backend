@@ -8,18 +8,11 @@ from contextlib import contextmanager
 from functools import lru_cache
 from importlib import import_module
 
-import tomli
 import tomli_w
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 
-
-# Avoid unnecessary I/O by caching.
-@lru_cache(1)
-def _get_pyproject():
-    """Parse and return the pyproject.toml file."""
-    with open("pyproject.toml", "rb") as f:
-        return tomli.load(f)
+from .utils import _get_pyproject
 
 
 @lru_cache(1)
