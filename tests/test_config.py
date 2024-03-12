@@ -12,10 +12,9 @@ def setup_config_project(tmp_path, jinja_environment, flag, config_value):
     return setup_project(
         tmp_path,
         jinja_environment,
-        "config_pyproject.toml",
+        "pyproject.toml",
         {
             "flags": {flag: config_value} if config_value else {},
-            "requires": [],
         },
     )
 

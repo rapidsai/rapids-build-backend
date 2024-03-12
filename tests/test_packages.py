@@ -13,17 +13,18 @@ from conftest import patch_nvcc_if_needed, setup_project
 DIR = Path(__file__).parent.resolve()
 
 
-def _generate_wheel(tmp_path, jinja_environment, env, template):
+def _generate_wheel(tmp_path, jinja_environment, env, template, template_args=None):
     """Produce a wheel and extract its metadata for testing."""
     package_dir = setup_project(
         tmp_path,
         jinja_environment,
         template,
+        template_args,
     )
-    if template == "scikit_build_core_pyproject.toml":
+    if template_args["build_backend"] == "scikit_build_core.build":
         # Temp hack, also copy CMakeLists.txt manually
         shutil.copyfile(
-            "tests/config_packages/templates/CMakeLists.txt",
+            DIR / "config_packages" / "templates" / "CMakeLists.txt",
             package_dir / "CMakeLists.txt",
         )
 
@@ -70,9 +71,21 @@ def _generate_wheel(tmp_path, jinja_environment, env, template):
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])
 def test_simple_setuptools(tmp_path, jinja_environment, env, nvcc_version):
+    template_args = {
+        "name": "simple_setuptools",
+        "dependencies": ["rmm"],
+        "extras": {"test": ["dask-cuda==24.4.*"]},
+        "build_requires": ["rmm"],
+        "build_backend": "setuptools.build_meta",
+        "rapids_builder_extra": "setuptools",
+    }
     with patch_nvcc_if_needed(nvcc_version):
         name, build_requires, requirements, extras = _generate_wheel(
-            tmp_path, jinja_environment, env, "setuptools_pyproject.toml"
+            tmp_path,
+            jinja_environment,
+            env,
+            "pyproject.toml",
+            template_args,
         )
 
     assert name == f"simple_setuptools-cu{nvcc_version}"
@@ -83,9 +96,21 @@ def test_simple_setuptools(tmp_path, jinja_environment, env, nvcc_version):
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])
 def test_simple_scikit_build_core(tmp_path, jinja_environment, env, nvcc_version):
+    template_args = {
+        "name": "simple_scikit_build_core",
+        "dependencies": ["cupy>=12.0.0"],
+        "extras": {"jit": ["ptxcompiler"]},
+        "build_requires": ["rmm==24.4.*"],
+        "build_backend": "scikit_build_core.build",
+        "rapids_builder_extra": "scikit-build-core",
+    }
     with patch_nvcc_if_needed(nvcc_version):
         name, build_requires, requirements, extras = _generate_wheel(
-            tmp_path, jinja_environment, env, "scikit_build_core_pyproject.toml"
+            tmp_path,
+            jinja_environment,
+            env,
+            "pyproject.toml",
+            template_args,
         )
 
     assert name == f"simple_scikit_build_core-cu{nvcc_version}"
