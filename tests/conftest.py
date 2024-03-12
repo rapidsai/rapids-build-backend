@@ -1,9 +1,13 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
+import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import venv
+from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 
 import pytest
@@ -12,6 +16,61 @@ import tomli_w
 from packaging.version import parse as parse_version
 
 BASE = Path(__file__).parent.parent.resolve()
+
+
+_NVCC = """\
+#!/usr/bin/env python
+# Spoof nvcc to return a version of choice
+
+# All we care about is the fourth line of the nvcc output containing the version.
+print('''\
+
+
+
+Cuda compilation tools, release {version}.0, V{version}.0.0
+''')
+"""
+
+
+@lru_cache(1)
+def _nvcc_tmp_dir():
+    """Temporary directory where spoofed nvcc executables will be placed."""
+    return tempfile.mkdtemp()
+
+
+@pytest.fixture(scope="session")
+def _cleanup_nvcc(request):
+    """Tell pytest to clean up the temporary nvcc files after the session."""
+
+    def delete_patch_files():
+        _nvcc_tmp_dir().cleanup()
+
+    request.addfinalizer(delete_patch_files)
+
+
+@lru_cache
+def _create_nvcc(nvcc_version):
+    """Generate a Python script that spoofs the output of nvcc for a desired version."""
+    fn = os.path.join(_nvcc_tmp_dir(), f"nvcc{nvcc_version}", "nvcc")
+    os.makedirs(os.path.dirname(fn))
+    with open(fn, "w") as f:
+        f.write(_NVCC.format(version=nvcc_version))
+    os.chmod(fn, 0o755)
+    return fn
+
+
+@contextmanager
+def patch_nvcc(nvcc_version):
+    """Patch the PATH to insert a spoofed nvcc that returns the desired version."""
+    path = os.environ["PATH"]
+    try:
+        nvcc = _create_nvcc(nvcc_version)
+        os.environ["PATH"] = os.pathsep.join(
+            [os.path.dirname(nvcc), os.environ["PATH"]]
+        )
+        yield
+    finally:
+        os.environ["PATH"] = path
 
 
 class VEnv:
