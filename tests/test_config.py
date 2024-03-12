@@ -18,23 +18,9 @@ def jinja_environment():
     return Environment(loader=FileSystemLoader(template_dir))
 
 
-@pytest.mark.parametrize(
-    "flag, config_value, expected",
-    [
-        ("commit-file", '"pkg/_version.py"', "pkg/_version.py"),
-        ("commit-file", None, ""),
-        ("disable-cuda-suffix", "true", True),
-        ("disable-cuda-suffix", "false", False),
-        ("disable-cuda-suffix", None, False),
-        ("only-release-deps", "true", True),
-        ("only-release-deps", "false", False),
-        ("only-release-deps", None, False),
-        ("require-cuda", "true", True),
-        ("require-cuda", "false", False),
-        ("require-cuda", None, True),
-    ],
-)
-def test_config(tmp_path, jinja_environment, flag, config_value, expected):
+def setup_project(
+    jinja_environment, tmp_path, flag, config_value, config_settings=None
+):
     template = jinja_environment.get_template("pyproject.toml")
     package_dir = tmp_path / "pkg"
     os.makedirs(package_dir)
@@ -52,8 +38,27 @@ def test_config(tmp_path, jinja_environment, flag, config_value, expected):
     pyproject_file = os.path.join(package_dir, "pyproject.toml")
     with open(pyproject_file, mode="w", encoding="utf-8") as f:
         f.write(content)
+    return Config(package_dir, config_settings)
 
-    config = Config(package_dir)
+
+@pytest.mark.parametrize(
+    "flag, config_value, expected",
+    [
+        ("commit-file", '"pkg/_version.py"', "pkg/_version.py"),
+        ("commit-file", None, ""),
+        ("disable-cuda-suffix", "true", True),
+        ("disable-cuda-suffix", "false", False),
+        ("disable-cuda-suffix", None, False),
+        ("only-release-deps", "true", True),
+        ("only-release-deps", "false", False),
+        ("only-release-deps", None, False),
+        ("require-cuda", "true", True),
+        ("require-cuda", "false", False),
+        ("require-cuda", None, True),
+    ],
+)
+def test_config(tmp_path, jinja_environment, flag, config_value, expected):
+    config = setup_project(jinja_environment, tmp_path, flag, config_value)
     assert getattr(config, flag.replace("-", "_")) == expected
 
 
@@ -69,27 +74,11 @@ def test_config(tmp_path, jinja_environment, flag, config_value, expected):
     ],
 )
 def test_config_env_var(tmp_path, jinja_environment, flag, config_value, expected):
-    template = jinja_environment.get_template("pyproject.toml")
-    package_dir = tmp_path / "pkg"
-    os.makedirs(package_dir)
-
-    # Create a pyproject.toml file with the given flag set to the opposite value that
-    # will be provided with the environment variable.
-    flags = {
-        flag: "true" if config_value == "false" else "false",
-    }
-    requires = []
-
-    content = template.render(requires=requires, flags=flags)
-    pyproject_file = os.path.join(package_dir, "pyproject.toml")
-    with open(pyproject_file, mode="w", encoding="utf-8") as f:
-        f.write(content)
-
+    config = setup_project(jinja_environment, tmp_path, flag, None)
     env_var = f"RAPIDS_{flag.upper().replace('-', '_')}"
     python_var = flag.replace("-", "_")
     try:
         os.environ[env_var] = config_value
-        config = Config(package_dir)
         assert getattr(config, python_var) == expected
 
         # Ensure that alternative spellings are not allowed.
@@ -114,21 +103,7 @@ def test_config_env_var(tmp_path, jinja_environment, flag, config_value, expecte
 def test_config_config_settings(
     tmp_path, jinja_environment, flag, config_value, expected
 ):
-    template = jinja_environment.get_template("pyproject.toml")
-    package_dir = tmp_path / "pkg"
-    os.makedirs(package_dir)
-
-    # Create a pyproject.toml file with the given flag set to the opposite value that
-    # will be provided with the config setting.
-    flags = {
-        flag: "true" if config_value == "false" else "false",
-    }
-    requires = []
-
-    content = template.render(requires=requires, flags=flags)
-    pyproject_file = os.path.join(package_dir, "pyproject.toml")
-    with open(pyproject_file, mode="w", encoding="utf-8") as f:
-        f.write(content)
-
-    config = Config(package_dir, config_settings={flag: config_value})
+    config = setup_project(
+        jinja_environment, tmp_path, flag, None, {flag: config_value}
+    )
     assert getattr(config, flag.replace("-", "_")) == expected
