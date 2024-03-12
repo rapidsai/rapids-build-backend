@@ -15,6 +15,8 @@ import tomli
 import tomli_w
 from packaging.version import parse as parse_version
 
+from rapids_builder.impls import _get_cuda_major
+
 BASE = Path(__file__).parent.parent.resolve()
 
 
@@ -60,14 +62,17 @@ def _create_nvcc(nvcc_version):
 
 
 @contextmanager
-def patch_nvcc(nvcc_version):
+def patch_nvcc_if_needed(nvcc_version):
     """Patch the PATH to insert a spoofed nvcc that returns the desired version."""
     path = os.environ["PATH"]
     try:
-        nvcc = _create_nvcc(nvcc_version)
-        os.environ["PATH"] = os.pathsep.join(
-            [os.path.dirname(nvcc), os.environ["PATH"]]
-        )
+        # Only create a patch if one is required. In addition to reducing overhead, this
+        # also ensures that we test the real nvcc and don't mask any relevant errors.
+        if _get_cuda_major() != nvcc_version:
+            nvcc = _create_nvcc(nvcc_version)
+            os.environ["PATH"] = os.pathsep.join(
+                [os.path.dirname(nvcc), os.environ["PATH"]]
+            )
         yield
     finally:
         os.environ["PATH"] = path
