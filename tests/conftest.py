@@ -212,7 +212,7 @@ def isolated_env(tmp_path, wheelhouse, pip_cache):
     return VEnv(env_dir=tmp_path, wheelhouse=wheelhouse, cache_dir=pip_cache)
 
 
-@pytest.fixture(scope="session")
+@lru_cache
 def jinja_environment():
     template_dir = os.path.join(
         os.path.dirname(__file__),
@@ -224,7 +224,7 @@ def jinja_environment():
     )
 
 
-def setup_project(tmp_path, jinja_environment, template, template_args=None):
+def generate_from_template(package_dir, template, template_args=None):
     default_template_args = {
         "name": "pkg",
         "dependencies": [],
@@ -233,13 +233,10 @@ def setup_project(tmp_path, jinja_environment, template, template_args=None):
         "flags": {},
         "build_backend": "setuptools.build_meta",
     }
-    template = jinja_environment.get_template(template)
-    package_dir = tmp_path / "pkg"
-    os.makedirs(package_dir)
+    template = jinja_environment().get_template(template)
 
     template_args = default_template_args | (template_args or {})
     content = template.render(**template_args)
     pyproject_file = os.path.join(package_dir, "pyproject.toml")
     with open(pyproject_file, mode="w", encoding="utf-8") as f:
         f.write(content)
-    return package_dir

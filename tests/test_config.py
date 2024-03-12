@@ -3,20 +3,23 @@
 import os
 
 import pytest
-from conftest import setup_project
+from conftest import generate_from_template
 
 from rapids_builder.config import Config
 
 
-def setup_config_project(tmp_path, jinja_environment, flag, config_value):
-    return setup_project(
-        tmp_path,
-        jinja_environment,
+def setup_config_project(tmp_path, flag, config_value):
+    package_dir = tmp_path / "pkg"
+    os.makedirs(package_dir)
+
+    generate_from_template(
+        package_dir,
         "pyproject.toml",
         {
             "flags": {flag: config_value} if config_value else {},
         },
     )
+    return package_dir
 
 
 @pytest.mark.parametrize(
@@ -35,10 +38,8 @@ def setup_config_project(tmp_path, jinja_environment, flag, config_value):
         ("require-cuda", None, True),
     ],
 )
-def test_config(tmp_path, jinja_environment, flag, config_value, expected):
-    config = Config(
-        setup_config_project(tmp_path, jinja_environment, flag, config_value)
-    )
+def test_config(tmp_path, flag, config_value, expected):
+    config = Config(setup_config_project(tmp_path, flag, config_value))
     assert getattr(config, flag.replace("-", "_")) == expected
 
 
@@ -53,8 +54,8 @@ def test_config(tmp_path, jinja_environment, flag, config_value, expected):
         ("require-cuda", "false", False),
     ],
 )
-def test_config_env_var(tmp_path, jinja_environment, flag, config_value, expected):
-    config = Config(setup_config_project(tmp_path, jinja_environment, flag, None))
+def test_config_env_var(tmp_path, flag, config_value, expected):
+    config = Config(setup_config_project(tmp_path, flag, None))
     env_var = f"RAPIDS_{flag.upper().replace('-', '_')}"
     python_var = flag.replace("-", "_")
     try:
@@ -80,11 +81,9 @@ def test_config_env_var(tmp_path, jinja_environment, flag, config_value, expecte
         ("require-cuda", "false", False),
     ],
 )
-def test_config_config_settings(
-    tmp_path, jinja_environment, flag, config_value, expected
-):
+def test_config_config_settings(tmp_path, flag, config_value, expected):
     config = Config(
-        setup_config_project(tmp_path, jinja_environment, flag, None),
+        setup_config_project(tmp_path, flag, None),
         {flag: config_value},
     )
     assert getattr(config, flag.replace("-", "_")) == expected

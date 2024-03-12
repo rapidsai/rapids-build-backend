@@ -8,16 +8,18 @@ from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
-from conftest import patch_nvcc_if_needed, setup_project
+from conftest import generate_from_template, patch_nvcc_if_needed
 
 DIR = Path(__file__).parent.resolve()
 
 
-def _generate_wheel(tmp_path, jinja_environment, env, template, template_args=None):
+def _generate_wheel(tmp_path, env, template, template_args=None):
     """Produce a wheel and extract its metadata for testing."""
-    package_dir = setup_project(
-        tmp_path,
-        jinja_environment,
+    package_dir = tmp_path / "pkg"
+    os.makedirs(package_dir)
+
+    generate_from_template(
+        package_dir,
         template,
         template_args,
     )
@@ -70,7 +72,7 @@ def _generate_wheel(tmp_path, jinja_environment, env, template, template_args=No
 
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])
-def test_simple_setuptools(tmp_path, jinja_environment, env, nvcc_version):
+def test_simple_setuptools(tmp_path, env, nvcc_version):
     template_args = {
         "name": "simple_setuptools",
         "dependencies": ["rmm"],
@@ -82,7 +84,6 @@ def test_simple_setuptools(tmp_path, jinja_environment, env, nvcc_version):
     with patch_nvcc_if_needed(nvcc_version):
         name, build_requires, requirements, extras = _generate_wheel(
             tmp_path,
-            jinja_environment,
             env,
             "pyproject.toml",
             template_args,
@@ -95,7 +96,7 @@ def test_simple_setuptools(tmp_path, jinja_environment, env, nvcc_version):
 
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])
-def test_simple_scikit_build_core(tmp_path, jinja_environment, env, nvcc_version):
+def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     template_args = {
         "name": "simple_scikit_build_core",
         "dependencies": ["cupy>=12.0.0"],
@@ -107,7 +108,6 @@ def test_simple_scikit_build_core(tmp_path, jinja_environment, env, nvcc_version
     with patch_nvcc_if_needed(nvcc_version):
         name, build_requires, requirements, extras = _generate_wheel(
             tmp_path,
-            jinja_environment,
             env,
             "pyproject.toml",
             template_args,
