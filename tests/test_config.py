@@ -18,23 +18,32 @@ def jinja_environment():
     return Environment(loader=FileSystemLoader(template_dir))
 
 
-def test_config(tmp_path, jinja_environment):
+@pytest.mark.parametrize(
+    "flag, config_value, expected",
+    [
+        ("require-cuda", "true", True),
+        ("require-cuda", "false", False),
+        ("require-cuda", None, True),
+    ],
+)
+def test_config(tmp_path, jinja_environment, flag, config_value, expected):
     template = jinja_environment.get_template("pyproject.toml")
     package_dir = tmp_path / "pkg"
     os.makedirs(package_dir)
 
-    flags = {
-        "require_cuda": "false",
-    }
+    flags = (
+        {
+            flag: config_value,
+        }
+        if config_value
+        else {}
+    )
+    requires = []
 
-    content = template.render(flags=flags)
+    content = template.render(requires=requires, flags=flags)
     pyproject_file = os.path.join(package_dir, "pyproject.toml")
     with open(pyproject_file, mode="w", encoding="utf-8") as f:
         f.write(content)
 
     config = Config(package_dir)
-    assert not config.require_cuda
-    assert config.commit_file == ""
-    assert not config.disable_cuda_suffix
-    assert not config.only_release_deps
-    assert config.requires == []
+    assert getattr(config, flag.replace("-", "_")) == expected

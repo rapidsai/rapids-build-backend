@@ -13,6 +13,11 @@ requires-python = ">=3.9"
 
 [tool.rapids_builder]
 build-backend = "setuptools.build_meta"
+requires = [
+{% for require in requires -%}
+    "{{ require }}",
+{% endfor %}
+]
 {% for flag, value in flags.items() -%}
 {{ flag }} = {{ value }}
 {% endfor %}
