@@ -4,12 +4,9 @@ import glob
 import os
 import zipfile
 from email.parser import BytesParser
-from pathlib import Path
 
 import pytest
 from conftest import generate_from_template, patch_nvcc_if_needed
-
-DIR = Path(__file__).parent.resolve()
 
 
 def _generate_wheel(env, package_dir):

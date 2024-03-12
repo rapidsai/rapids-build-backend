@@ -18,7 +18,7 @@ from packaging.version import parse as parse_version
 
 from rapids_builder.impls import _get_cuda_major
 
-BASE = Path(__file__).parent.parent.resolve()
+DIR = Path(__file__).parent.parent.resolve()
 
 
 _NVCC = """\
@@ -160,7 +160,7 @@ def wheelhouse(tmp_path_factory, pip_cache):
     rapids_builder_build_dir = tmp_path_factory.mktemp("rapids_builder_build_dir")
 
     shutil.copytree(
-        BASE,
+        DIR,
         rapids_builder_build_dir,
         ignore=shutil.ignore_patterns("tests*"),
         dirs_exist_ok=True,
