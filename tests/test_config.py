@@ -3,31 +3,9 @@
 import os
 
 import pytest
-from jinja2 import Environment, FileSystemLoader
+from conftest import setup_project
 
 from rapids_builder.config import Config
-
-
-@pytest.fixture(scope="module")
-def jinja_environment():
-    template_dir = os.path.join(
-        os.path.dirname(__file__),
-        "config_packages",
-        "templates/",
-    )
-    return Environment(loader=FileSystemLoader(template_dir))
-
-
-def setup_project(jinja_environment, tmp_path, template, template_args):
-    template = jinja_environment.get_template(template)
-    package_dir = tmp_path / "pkg"
-    os.makedirs(package_dir)
-
-    content = template.render(**template_args)
-    pyproject_file = os.path.join(package_dir, "pyproject.toml")
-    with open(pyproject_file, mode="w", encoding="utf-8") as f:
-        f.write(content)
-    return package_dir
 
 
 def setup_config_project(jinja_environment, tmp_path, flag, config_value):
