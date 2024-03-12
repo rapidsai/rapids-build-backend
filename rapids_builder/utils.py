@@ -7,7 +7,7 @@ import tomli
 
 
 # Avoid unnecessary I/O by caching.
-@lru_cache(1)
+@lru_cache
 def _get_pyproject(dirname="."):
     """Parse and return the pyproject.toml file."""
     with open(os.path.join(dirname, "pyproject.toml"), "rb") as f:

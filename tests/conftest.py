@@ -34,7 +34,7 @@ Cuda compilation tools, release {version}.0, V{version}.0.0
 """
 
 
-@lru_cache(1)
+@lru_cache
 def _nvcc_tmp_dir():
     """Temporary directory where spoofed nvcc executables will be placed."""
     return tempfile.mkdtemp()

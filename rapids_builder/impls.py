@@ -16,26 +16,9 @@ from .config import Config
 from .utils import _get_pyproject
 
 
-@lru_cache(1)
-def _get_tool_table():
-    """Get the rapids_builder tool table from pyproject.toml."""
-    pyproject = _get_pyproject()
-    try:
-        return pyproject["tool"]["rapids_builder"]
-    except KeyError as e:
-        raise ValueError("No rapids_builder table in pyproject.toml") from e
-
-
-@lru_cache(1)
-def _get_backend():
+@lru_cache
+def _get_backend(build_backend):
     """Get the wrapped build backend specified in pyproject.toml."""
-    try:
-        build_backend = _get_tool_table()["build-backend"]
-    except KeyError:
-        raise ValueError(
-            "No build backend specified in pyproject.toml's tool.rapids_builder table"
-        )
-
     try:
         return import_module(build_backend)
     except ImportError:
@@ -46,7 +29,7 @@ def _get_backend():
         )
 
 
-@lru_cache(2)
+@lru_cache
 def _get_cuda_major(allow_no_cuda=False):
     """Get the CUDA suffix based on nvcc.
 
@@ -177,7 +160,7 @@ def _suffix_requires(requires, allow_no_cuda, only_release_deps):
     return new_requires
 
 
-@lru_cache(1)
+@lru_cache
 def _get_git_commit():
     """Get the current git commit.
 
@@ -288,7 +271,10 @@ def get_requires_for_build_wheel(config_settings):
             config.requires, config.allow_no_cuda, config.only_release_deps
         )
 
-        if hasattr(backend := _get_backend(), "get_requires_for_build_wheel"):
+        if hasattr(
+            backend := _get_backend(config.build_backend),
+            "get_requires_for_build_wheel",
+        ):
             requires.extend(backend.get_requires_for_build_wheel(config_settings))
 
         return requires
@@ -301,7 +287,10 @@ def get_requires_for_build_sdist(config_settings):
             config.requires, config.allow_no_cuda, config.only_release_deps
         )
 
-        if hasattr(backend := _get_backend(), "get_requires_for_build_sdist"):
+        if hasattr(
+            backend := _get_backend(config.build_backend),
+            "get_requires_for_build_sdist",
+        ):
             requires.extend(backend.get_requires_for_build_sdist(config_settings))
 
         return requires
@@ -314,7 +303,10 @@ def get_requires_for_build_editable(config_settings):
             config.requires, config.allow_no_cuda, config.only_release_deps
         )
 
-        if hasattr(backend := _get_backend(), "get_requires_for_build_editable"):
+        if hasattr(
+            backend := _get_backend(config.build_backend),
+            "get_requires_for_build_editable",
+        ):
             requires.extend(backend.get_requires_for_build_editable(config_settings))
 
         return requires
@@ -323,7 +315,7 @@ def get_requires_for_build_editable(config_settings):
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        return _get_backend().build_wheel(
+        return _get_backend(config.build_backend).build_wheel(
             wheel_directory, config_settings, metadata_directory
         )
 
@@ -331,7 +323,9 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 def build_sdist(sdist_directory, config_settings=None):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        return _get_backend().build_sdist(sdist_directory, config_settings)
+        return _get_backend(config.build_backend).build_sdist(
+            sdist_directory, config_settings
+        )
 
 
 # The three hooks below are optional and may not be implemented by the wrapped backend.
@@ -340,7 +334,7 @@ def build_sdist(sdist_directory, config_settings=None):
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        return _get_backend().build_editable(
+        return _get_backend(config.build_backend).build_editable(
             wheel_directory, config_settings, metadata_directory
         )
 
@@ -348,7 +342,7 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
-        return _get_backend().prepare_metadata_for_build_wheel(
+        return _get_backend(config.build_backend).prepare_metadata_for_build_wheel(
             metadata_directory, config_settings
         )
 
@@ -356,6 +350,6 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
 def prepare_metadata_for_build_editable(metadata_directory, config_settings=None):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
-        return _get_backend().prepare_metadata_for_build_editable(
+        return _get_backend(config.build_backend).prepare_metadata_for_build_editable(
             metadata_directory, config_settings
         )
