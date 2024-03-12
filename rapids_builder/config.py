@@ -12,11 +12,11 @@ class Config:
     # required) and whether it may be overridden by an environment variable or a config
     # setting.
     config_options = {
-        "require-cuda": (True, True),
         "build-backend": (None, False),
         "commit-file": ("", False),
         "disable-cuda-suffix": (False, True),
         "only-release-deps": (False, True),
+        "require-cuda": (True, True),
         "requires": ([], False),
     }
 

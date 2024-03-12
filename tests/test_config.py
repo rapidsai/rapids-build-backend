@@ -21,6 +21,14 @@ def jinja_environment():
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
+        ("commit-file", '"pkg/_version.py"', "pkg/_version.py"),
+        ("commit-file", None, ""),
+        ("disable-cuda-suffix", "true", True),
+        ("disable-cuda-suffix", "false", False),
+        ("disable-cuda-suffix", None, False),
+        ("only-release-deps", "true", True),
+        ("only-release-deps", "false", False),
+        ("only-release-deps", None, False),
         ("require-cuda", "true", True),
         ("require-cuda", "false", False),
         ("require-cuda", None, True),
