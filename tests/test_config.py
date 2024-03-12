@@ -6,7 +6,6 @@ import pytest
 from jinja2 import Environment, FileSystemLoader
 
 from rapids_builder.config import Config
-from rapids_builder.utils import _get_pyproject
 
 
 @pytest.fixture(scope="module")
@@ -33,8 +32,7 @@ def test_config(tmp_path, jinja_environment):
     with open(pyproject_file, mode="w", encoding="utf-8") as f:
         f.write(content)
 
-    pyproject_data = _get_pyproject(package_dir)
-    config = Config(pyproject_data)
+    config = Config(package_dir)
     assert not config.allow_no_cuda
     assert config.commit_file == ""
     assert not config.disable_cuda_suffix

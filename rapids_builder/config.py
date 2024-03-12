@@ -2,6 +2,8 @@
 
 import os
 
+from .utils import _get_pyproject
+
 
 class Config:
     """Manage the build configuration for the project."""
@@ -18,7 +20,8 @@ class Config:
         "requires": ([], False),
     }
 
-    def __init__(self, pyproject_data):
+    def __init__(self, dirname="."):
+        pyproject_data = _get_pyproject(dirname)
         try:
             self.config = pyproject_data["tool"]["rapids_builder"]
         except KeyError as e:
