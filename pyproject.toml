@@ -27,6 +27,9 @@ setuptools = [
     "setuptools",
     "wheel",
 ]
+test = [
+    "jinja2",
+]
 
 [tool.setuptools]
 license-files = ["LICENSE"]

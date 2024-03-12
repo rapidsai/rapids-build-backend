@@ -1,0 +1,18 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.
+
+[build-system]
+build-backend = "rapids_builder.build"
+requires = [
+    "rapids_builder[setuptools]",
+]
+
+[project]
+name = "config"
+version = "0.0.1"
+requires-python = ">=3.9"
+
+[tool.rapids_builder]
+build-backend = "setuptools.build_meta"
+{% for flag, value in flags.items() -%}
+{{ flag }} = {{ value }}
+{% endfor %}
