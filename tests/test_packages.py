@@ -2,7 +2,6 @@
 
 import glob
 import os
-import shutil
 import zipfile
 from email.parser import BytesParser
 from pathlib import Path
@@ -13,23 +12,8 @@ from conftest import generate_from_template, patch_nvcc_if_needed
 DIR = Path(__file__).parent.resolve()
 
 
-def _generate_wheel(tmp_path, env, template, template_args=None):
+def _generate_wheel(env, package_dir):
     """Produce a wheel and extract its metadata for testing."""
-    package_dir = tmp_path / "pkg"
-    os.makedirs(package_dir)
-
-    generate_from_template(
-        package_dir,
-        template,
-        template_args,
-    )
-    if template_args["build_backend"] == "scikit_build_core.build":
-        # Temp hack, also copy CMakeLists.txt manually
-        shutil.copyfile(
-            DIR / "config_packages" / "templates" / "CMakeLists.txt",
-            package_dir / "CMakeLists.txt",
-        )
-
     output = env.wheel(str(package_dir), "-v")
 
     # Parse the build dependencies from the pip output since they won't be encoded
@@ -81,13 +65,14 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
         "build_backend": "setuptools.build_meta",
         "rapids_builder_extra": "setuptools",
     }
+
+    package_dir = tmp_path / "pkg"
+    os.makedirs(package_dir)
+
+    generate_from_template(package_dir, "pyproject.toml", template_args)
+
     with patch_nvcc_if_needed(nvcc_version):
-        name, build_requires, requirements, extras = _generate_wheel(
-            tmp_path,
-            env,
-            "pyproject.toml",
-            template_args,
-        )
+        name, build_requires, requirements, extras = _generate_wheel(env, package_dir)
 
     assert name == f"simple_setuptools-cu{nvcc_version}"
     assert {f"rmm-cu{nvcc_version}>=0.0.0a0"}.issubset(build_requires)
@@ -105,13 +90,15 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
         "build_backend": "scikit_build_core.build",
         "rapids_builder_extra": "scikit-build-core",
     }
+
+    package_dir = tmp_path / "pkg"
+    os.makedirs(package_dir)
+
+    generate_from_template(package_dir, "pyproject.toml", template_args)
+    generate_from_template(package_dir, "CMakeLists.txt")
+
     with patch_nvcc_if_needed(nvcc_version):
-        name, build_requires, requirements, extras = _generate_wheel(
-            tmp_path,
-            env,
-            "pyproject.toml",
-            template_args,
-        )
+        name, build_requires, requirements, extras = _generate_wheel(env, package_dir)
 
     assert name == f"simple_scikit_build_core-cu{nvcc_version}"
     assert {f"rmm-cu{nvcc_version}==24.4.*,>=0.0.0a0"}.issubset(build_requires)

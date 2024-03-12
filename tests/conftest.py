@@ -224,8 +224,8 @@ def jinja_environment():
     )
 
 
-def generate_from_template(package_dir, template, template_args=None):
-    default_template_args = {
+_TEMPLATE_DEFAULTS = {
+    "pyproject.toml": {
         "name": "pkg",
         "dependencies": [],
         "extras": {},
@@ -233,10 +233,15 @@ def generate_from_template(package_dir, template, template_args=None):
         "flags": {},
         "build_backend": "setuptools.build_meta",
     }
-    template = jinja_environment().get_template(template)
+}
+
+
+def generate_from_template(package_dir, template_name, template_args=None):
+    default_template_args = _TEMPLATE_DEFAULTS.get(template_name, {})
+    template = jinja_environment().get_template(template_name)
 
     template_args = default_template_args | (template_args or {})
     content = template.render(**template_args)
-    pyproject_file = os.path.join(package_dir, "pyproject.toml")
-    with open(pyproject_file, mode="w", encoding="utf-8") as f:
+    output_file = os.path.join(package_dir, template_name)
+    with open(output_file, mode="w", encoding="utf-8") as f:
         f.write(content)
