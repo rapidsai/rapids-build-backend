@@ -20,7 +20,8 @@ class Config:
         "requires": ([], False),
     }
 
-    def __init__(self, dirname="."):
+    def __init__(self, dirname=".", config_settings=None):
+        self.config_settings = config_settings or {}
         pyproject_data = _get_pyproject(dirname)
         try:
             self.config = pyproject_data["tool"]["rapids_builder"]
@@ -32,18 +33,18 @@ class Config:
         if config_name in Config.config_options:
             default_value, allows_override = Config.config_options[config_name]
 
-            # Highest priority is environment variable.
+            # If overrides are allowed environment variables take precedence over the
+            # config_settings dict.
             if allows_override:
                 if (env_var_name := f"RAPIDS_{name.upper()}") in os.environ:
                     return os.environ[env_var_name]
 
-                # TODO: Support config_settings
+                if config_name in self.config_settings:
+                    return self.config_settings[config_name]
 
-            # Default is pyproject.toml.
             try:
                 return self.config[config_name]
             except KeyError:
-                # Return the default value if one is defined.
                 if default_value is not None:
                     return default_value
 

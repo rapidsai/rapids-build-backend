@@ -282,7 +282,7 @@ def _edit_pyproject(config):
 # backend's hooks to the rapids_builder hooks, but that's not a big deal because these
 # functions only executed by the build frontend and are not user-facing.
 def get_requires_for_build_wheel(config_settings):
-    config = Config()
+    config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         requires = _suffix_requires(
             config.requires, config.allow_no_cuda, config.only_release_deps
@@ -295,7 +295,7 @@ def get_requires_for_build_wheel(config_settings):
 
 
 def get_requires_for_build_sdist(config_settings):
-    config = Config()
+    config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         requires = _suffix_requires(
             config.requires, config.allow_no_cuda, config.only_release_deps
@@ -308,7 +308,7 @@ def get_requires_for_build_sdist(config_settings):
 
 
 def get_requires_for_build_editable(config_settings):
-    config = Config()
+    config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         requires = _suffix_requires(
             config.requires, config.allow_no_cuda, config.only_release_deps
@@ -321,7 +321,7 @@ def get_requires_for_build_editable(config_settings):
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    config = Config()
+    config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         return _get_backend().build_wheel(
             wheel_directory, config_settings, metadata_directory
@@ -329,7 +329,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
 
 def build_sdist(sdist_directory, config_settings=None):
-    config = Config()
+    config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         return _get_backend().build_sdist(sdist_directory, config_settings)
 
@@ -338,7 +338,7 @@ def build_sdist(sdist_directory, config_settings=None):
 # These definitions assume that they will only be called if the wrapped backend
 # implements them by virtue of the logic in __init__.py.
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
-    config = Config()
+    config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         return _get_backend().build_editable(
             wheel_directory, config_settings, metadata_directory
@@ -346,7 +346,7 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
 
 
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
-    config = Config()
+    config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
         return _get_backend().prepare_metadata_for_build_wheel(
             metadata_directory, config_settings
@@ -354,7 +354,7 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
 
 
 def prepare_metadata_for_build_editable(metadata_directory, config_settings=None):
-    config = Config()
+    config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
         return _get_backend().prepare_metadata_for_build_editable(
             metadata_directory, config_settings
