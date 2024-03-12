@@ -101,7 +101,7 @@ class VEnv:
         )
 
     def install(self, *args):
-        subprocess.run(
+        return subprocess.run(
             [
                 self.executable,
                 "-m",
@@ -114,11 +114,13 @@ class VEnv:
                 self.cache_dir,
                 *args,
             ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             check=True,
         )
 
     def wheel(self, package_dir, *args):
-        subprocess.run(
+        return subprocess.run(
             [
                 self.executable,
                 "-m",
@@ -135,6 +137,8 @@ class VEnv:
                 package_dir,
                 *args,
             ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             check=True,
         )
 
