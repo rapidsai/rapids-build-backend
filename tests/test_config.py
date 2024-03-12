@@ -24,7 +24,7 @@ def test_config(tmp_path, jinja_environment):
     os.makedirs(package_dir)
 
     flags = {
-        "allow-no-cuda": "false",
+        "require_cuda": "false",
     }
 
     content = template.render(flags=flags)
@@ -33,7 +33,7 @@ def test_config(tmp_path, jinja_environment):
         f.write(content)
 
     config = Config(package_dir)
-    assert not config.allow_no_cuda
+    assert not config.require_cuda
     assert config.commit_file == ""
     assert not config.disable_cuda_suffix
     assert not config.only_release_deps

@@ -30,13 +30,13 @@ def _get_backend(build_backend):
 
 
 @lru_cache
-def _get_cuda_major(allow_no_cuda=False):
+def _get_cuda_major(require_cuda=False):
     """Get the CUDA suffix based on nvcc.
 
     Parameters
     ----------
-    allow_no_cuda : bool
-        If True, return None if nvcc is not in the PATH. If False, raise an exception.
+    require_cuda : bool
+        If True, raise an exception if nvcc is not in the PATH. If False, return None.
     """
     try:
         nvcc_exists = (
@@ -59,21 +59,21 @@ def _get_cuda_major(allow_no_cuda=False):
             raise ValueError("Failed to parse CUDA version from nvcc output.")
         return match.group(1)
     except Exception:
-        if allow_no_cuda:
+        if not require_cuda:
             return None
         raise
 
 
-def _get_cuda_suffix(allow_no_cuda=False):
+def _get_cuda_suffix(require_cuda=False):
     """Get the CUDA suffix based on nvcc.
 
     Parameters
     ----------
-    allow_no_cuda : bool
-        If True, return an empty string if CUDA could not be detected. If False, raise
-        an exception.
+    require_cuda : bool
+        If True, raise an exception if CUDA could not be detected. If False, return an
+        empty string.
     """
-    if (major := _get_cuda_major(allow_no_cuda)) is None:
+    if (major := _get_cuda_major(require_cuda)) is None:
         return ""
     return f"-cu{major}"
 
@@ -119,17 +119,17 @@ _CUDA_11_ONLY_WHEELS = (
 )
 
 
-def _suffix_requires(requires, allow_no_cuda, only_release_deps):
+def _suffix_requires(requires, require_cuda, only_release_deps):
     """Add the CUDA suffix to any versioned RAPIDS wheels in requires."""
     new_requires = []
-    suffix = _get_cuda_suffix(allow_no_cuda)
+    suffix = _get_cuda_suffix(require_cuda)
     for req in requires:
         req = Requirement(req)
 
         # cupy is a special case because it's not a RAPIDS wheel. If we can't
         # determine the local CUDA version, then we fall back to making the sdist of
         # cupy on PyPI the dependency.
-        major = _get_cuda_major(allow_no_cuda)
+        major = _get_cuda_major(require_cuda)
         if req.name == "cupy" and major is not None:
             req.name += f"-cuda{major}x"
         else:
@@ -228,20 +228,18 @@ def _edit_pyproject(config):
     """
     pyproject = _get_pyproject()
     project_data = pyproject["project"]
-    project_data["name"] += _get_cuda_suffix(config.allow_no_cuda)
+    project_data["name"] += _get_cuda_suffix(config.require_cuda)
 
     dependencies = pyproject["project"].get("dependencies")
     if dependencies is not None:
         project_data["dependencies"] = _suffix_requires(
-            project_data["dependencies"], config.allow_no_cuda, config.only_release_deps
+            project_data["dependencies"], config.require_cuda, config.only_release_deps
         )
 
     optional_dependencies = pyproject["project"].get("optional-dependencies")
     if optional_dependencies is not None:
         project_data["optional-dependencies"] = {
-            extra: _suffix_requires(
-                deps, config.allow_no_cuda, config.only_release_deps
-            )
+            extra: _suffix_requires(deps, config.require_cuda, config.only_release_deps)
             for extra, deps in optional_dependencies.items()
         }
 
@@ -272,7 +270,7 @@ def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         requires = _suffix_requires(
-            config.requires, config.allow_no_cuda, config.only_release_deps
+            config.requires, config.require_cuda, config.only_release_deps
         )
 
         if hasattr(
@@ -288,7 +286,7 @@ def get_requires_for_build_sdist(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         requires = _suffix_requires(
-            config.requires, config.allow_no_cuda, config.only_release_deps
+            config.requires, config.require_cuda, config.only_release_deps
         )
 
         if hasattr(
@@ -304,7 +302,7 @@ def get_requires_for_build_editable(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
         requires = _suffix_requires(
-            config.requires, config.allow_no_cuda, config.only_release_deps
+            config.requires, config.require_cuda, config.only_release_deps
         )
 
         if hasattr(
