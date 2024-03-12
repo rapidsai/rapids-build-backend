@@ -18,27 +18,28 @@ def jinja_environment():
     return Environment(loader=FileSystemLoader(template_dir))
 
 
-def setup_project(
-    jinja_environment, tmp_path, flag, config_value, config_settings=None
-):
-    template = jinja_environment.get_template("config_pyproject.toml")
+def setup_project(jinja_environment, tmp_path, template, template_args):
+    template = jinja_environment.get_template(template)
     package_dir = tmp_path / "pkg"
     os.makedirs(package_dir)
 
-    flags = (
-        {
-            flag: config_value,
-        }
-        if config_value
-        else {}
-    )
-    requires = []
-
-    content = template.render(requires=requires, flags=flags)
+    content = template.render(**template_args)
     pyproject_file = os.path.join(package_dir, "pyproject.toml")
     with open(pyproject_file, mode="w", encoding="utf-8") as f:
         f.write(content)
-    return Config(package_dir, config_settings)
+    return package_dir
+
+
+def setup_config_project(jinja_environment, tmp_path, flag, config_value):
+    return setup_project(
+        jinja_environment,
+        tmp_path,
+        "config_pyproject.toml",
+        {
+            "flags": {flag: config_value} if config_value else {},
+            "requires": [],
+        },
+    )
 
 
 @pytest.mark.parametrize(
@@ -58,7 +59,9 @@ def setup_project(
     ],
 )
 def test_config(tmp_path, jinja_environment, flag, config_value, expected):
-    config = setup_project(jinja_environment, tmp_path, flag, config_value)
+    config = Config(
+        setup_config_project(jinja_environment, tmp_path, flag, config_value)
+    )
     assert getattr(config, flag.replace("-", "_")) == expected
 
 
@@ -74,7 +77,7 @@ def test_config(tmp_path, jinja_environment, flag, config_value, expected):
     ],
 )
 def test_config_env_var(tmp_path, jinja_environment, flag, config_value, expected):
-    config = setup_project(jinja_environment, tmp_path, flag, None)
+    config = Config(setup_config_project(jinja_environment, tmp_path, flag, None))
     env_var = f"RAPIDS_{flag.upper().replace('-', '_')}"
     python_var = flag.replace("-", "_")
     try:
@@ -103,7 +106,8 @@ def test_config_env_var(tmp_path, jinja_environment, flag, config_value, expecte
 def test_config_config_settings(
     tmp_path, jinja_environment, flag, config_value, expected
 ):
-    config = setup_project(
-        jinja_environment, tmp_path, flag, None, {flag: config_value}
+    config = Config(
+        setup_config_project(jinja_environment, tmp_path, flag, None),
+        {flag: config_value},
     )
     assert getattr(config, flag.replace("-", "_")) == expected
