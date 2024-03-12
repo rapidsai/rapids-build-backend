@@ -1,6 +1,7 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 from . import impls
+from .config import Config
 from .impls import (
     _get_backend,
     build_sdist,
@@ -39,7 +40,12 @@ __all__ = [
 #   behavior of the frontend even if build_editable is not defined, so it is safer to
 #   avoid defining it unless the wrapped backend does.
 
-backend = _get_backend()
+# We could override __getattr__ instead to defer these lookups, but in practice the
+# result is equivalent since the underlying backend must be available when this module
+# is imported. Any code that wishes to call or inspect the functions directly for any
+# reason in a different environment may do so by importing the impls module directly.
+config = Config()
+backend = _get_backend(config.build_backend)
 for name in (
     "build_editable",
     "get_requires_for_build_editable",

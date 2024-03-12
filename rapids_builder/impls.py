@@ -228,7 +228,7 @@ def _edit_pyproject(config):
     """
     pyproject = _get_pyproject()
     project_data = pyproject["project"]
-    project_data["name"] += _get_cuda_suffix(config)
+    project_data["name"] += _get_cuda_suffix(config.allow_no_cuda)
 
     dependencies = pyproject["project"].get("dependencies")
     if dependencies is not None:
@@ -263,7 +263,11 @@ def _edit_pyproject(config):
 # need to load pyproject.toml to know what the build backend is). Note that this also
 # prevents us from using something like functools.wraps to copy the docstrings from the
 # backend's hooks to the rapids_builder hooks, but that's not a big deal because these
-# functions only executed by the build frontend and are not user-facing.
+# functions only executed by the build frontend and are not user-facing. This approach
+# also ignores the possibility that the backend may not define certain optional hooks
+# because these definitions assume that they will only be called if the wrapped backend
+# implements them by virtue of the logic in rapids_builder's build module (the actual
+# build backend, which conditionally imports these functions).
 def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
@@ -328,9 +332,6 @@ def build_sdist(sdist_directory, config_settings=None):
         )
 
 
-# The three hooks below are optional and may not be implemented by the wrapped backend.
-# These definitions assume that they will only be called if the wrapped backend
-# implements them by virtue of the logic in __init__.py.
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
