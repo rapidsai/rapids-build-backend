@@ -21,7 +21,7 @@ def jinja_environment():
 def setup_project(
     jinja_environment, tmp_path, flag, config_value, config_settings=None
 ):
-    template = jinja_environment.get_template("pyproject.toml")
+    template = jinja_environment.get_template("config_pyproject.toml")
     package_dir = tmp_path / "pkg"
     os.makedirs(package_dir)
 
