@@ -216,7 +216,6 @@ def isolated_env(tmp_path, wheelhouse, pip_cache):
 def jinja_environment():
     template_dir = os.path.join(
         os.path.dirname(__file__),
-        "config_packages",
         "templates/",
     )
     return Environment(
