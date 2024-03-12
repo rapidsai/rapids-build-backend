@@ -50,6 +50,8 @@ class Config:
                     return os.environ[env_var]
 
                 if config_name in self.config_settings:
+                    if isinstance(default_value, bool):
+                        return self.config_settings[config_name] == "true"
                     return self.config_settings[config_name]
 
             try:

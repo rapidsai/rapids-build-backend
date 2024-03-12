@@ -68,10 +68,7 @@ def test_config(tmp_path, jinja_environment, flag, config_value, expected):
         ("require-cuda", "false", False),
     ],
 )
-@pytest.mark.parametrize("capitalized", [True, False])
-def test_config_env_var(
-    tmp_path, jinja_environment, flag, config_value, expected, capitalized
-):
+def test_config_env_var(tmp_path, jinja_environment, flag, config_value, expected):
     template = jinja_environment.get_template("pyproject.toml")
     package_dir = tmp_path / "pkg"
     os.makedirs(package_dir)
@@ -89,15 +86,49 @@ def test_config_env_var(
         f.write(content)
 
     env_var = f"RAPIDS_{flag.upper().replace('-', '_')}"
-    env_value = config_value.capitalize() if capitalized else config_value
     python_var = flag.replace("-", "_")
     try:
-        os.environ[env_var] = env_value
+        os.environ[env_var] = config_value
         config = Config(package_dir)
-        if capitalized:
-            with pytest.raises(ValueError):
-                getattr(config, python_var)
-        else:
-            assert getattr(config, python_var) == expected
+        assert getattr(config, python_var) == expected
+
+        # Ensure that alternative spellings are not allowed.
+        os.environ[env_var] = config_value.capitalize()
+        with pytest.raises(ValueError):
+            getattr(config, python_var)
     finally:
         del os.environ[env_var]
+
+
+@pytest.mark.parametrize(
+    "flag, config_value, expected",
+    [
+        ("disable-cuda-suffix", "true", True),
+        ("disable-cuda-suffix", "false", False),
+        ("only-release-deps", "true", True),
+        ("only-release-deps", "false", False),
+        ("require-cuda", "true", True),
+        ("require-cuda", "false", False),
+    ],
+)
+def test_config_config_settings(
+    tmp_path, jinja_environment, flag, config_value, expected
+):
+    template = jinja_environment.get_template("pyproject.toml")
+    package_dir = tmp_path / "pkg"
+    os.makedirs(package_dir)
+
+    # Create a pyproject.toml file with the given flag set to the opposite value that
+    # will be provided with the config setting.
+    flags = {
+        flag: "true" if config_value == "false" else "false",
+    }
+    requires = []
+
+    content = template.render(requires=requires, flags=flags)
+    pyproject_file = os.path.join(package_dir, "pyproject.toml")
+    with open(pyproject_file, mode="w", encoding="utf-8") as f:
+        f.write(content)
+
+    config = Config(package_dir, config_settings={flag: config_value})
+    assert getattr(config, flag.replace("-", "_")) == expected
