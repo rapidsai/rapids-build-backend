@@ -222,11 +222,12 @@ def jinja_environment():
     return Environment(loader=FileSystemLoader(template_dir))
 
 
-def setup_project(jinja_environment, tmp_path, template, template_args):
+def setup_project(tmp_path, jinja_environment, template, template_args=None):
     template = jinja_environment.get_template(template)
     package_dir = tmp_path / "pkg"
     os.makedirs(package_dir)
 
+    template_args = template_args or {}
     content = template.render(**template_args)
     pyproject_file = os.path.join(package_dir, "pyproject.toml")
     with open(pyproject_file, mode="w", encoding="utf-8") as f:

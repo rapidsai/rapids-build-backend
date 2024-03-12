@@ -8,10 +8,10 @@ from conftest import setup_project
 from rapids_builder.config import Config
 
 
-def setup_config_project(jinja_environment, tmp_path, flag, config_value):
+def setup_config_project(tmp_path, jinja_environment, flag, config_value):
     return setup_project(
-        jinja_environment,
         tmp_path,
+        jinja_environment,
         "config_pyproject.toml",
         {
             "flags": {flag: config_value} if config_value else {},
@@ -38,7 +38,7 @@ def setup_config_project(jinja_environment, tmp_path, flag, config_value):
 )
 def test_config(tmp_path, jinja_environment, flag, config_value, expected):
     config = Config(
-        setup_config_project(jinja_environment, tmp_path, flag, config_value)
+        setup_config_project(tmp_path, jinja_environment, flag, config_value)
     )
     assert getattr(config, flag.replace("-", "_")) == expected
 
@@ -55,7 +55,7 @@ def test_config(tmp_path, jinja_environment, flag, config_value, expected):
     ],
 )
 def test_config_env_var(tmp_path, jinja_environment, flag, config_value, expected):
-    config = Config(setup_config_project(jinja_environment, tmp_path, flag, None))
+    config = Config(setup_config_project(tmp_path, jinja_environment, flag, None))
     env_var = f"RAPIDS_{flag.upper().replace('-', '_')}"
     python_var = flag.replace("-", "_")
     try:
@@ -85,7 +85,7 @@ def test_config_config_settings(
     tmp_path, jinja_environment, flag, config_value, expected
 ):
     config = Config(
-        setup_config_project(jinja_environment, tmp_path, flag, None),
+        setup_config_project(tmp_path, jinja_environment, flag, None),
         {flag: config_value},
     )
     assert getattr(config, flag.replace("-", "_")) == expected
