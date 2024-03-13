@@ -1,0 +1,67 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.
+
+{% set pyproject_data = load_file_data("pyproject.toml") %}
+{% set version = pyproject_data.get('project', {}).get('version') %}
+{% set summary = pyproject_data.get('project', {}).get('description') %}
+
+package:
+  name: rapids-build-backend
+  version: {{ version }}
+
+source:
+  path: ../../..
+
+build:
+  number: 0
+  noarch: python
+  script: python -m pip install . -vv --no-deps
+
+test:
+  requires:
+    - pip
+    - python >=3.9
+    {% for r in pyproject_data.get("project", {}).get("optional-dependencies", {}).get("test", []) %}
+    - {{ r }}
+    {% endfor %}
+  source_files:
+    - tests/
+    # Need the source for running tests, for whatever that's worth in a conda
+    # environment.
+    - rapids_build_backend/
+    - pyproject.toml
+
+requirements:
+  host:
+    - pip
+    - python >=3.9
+    - conda-verify
+    {% for r in pyproject_data.get("build-system", {}).get("requires", []) %}
+    - {{ r }}
+    {% endfor %}
+  run:
+    {% for r in pyproject_data.get("project", {}).get("dependencies", []) %}
+    - {{ r }}
+    {% endfor %}
+
+    # Automatically include all extras since we have no way to request optional
+    # subsets in conda.
+    {% for extra, extra_deps in pyproject_data.get("project", {}).get("optional-dependencies", {}).items() %}
+    {% if extra != "test" %}
+    {% for r in extra_deps %}
+    - {{ r }}
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+
+about:
+  home: https://rapids.ai/
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: {{ summary }}
+  description: |
+    This package contains the PEP 517 build backend adapter used by all of
+    RAPIDS. It does not directly perform builds, but rather performs various
+    RAPIDS-specific metadata manipulations before calling down to another build
+    backend like setuptools to finish the job.
+  doc_url: https://docs.rapids.ai/
+  dev_url: https://github.com/rapidsai/rapids-build-backend
