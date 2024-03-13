@@ -121,27 +121,32 @@ class VEnv:
         )
 
     def wheel(self, package_dir, *args):
-        return subprocess.run(
-            [
-                self.executable,
-                "-m",
-                "pip",
-                "wheel",
-                "--disable-pip-version-check",
-                "--no-deps",
-                "--wheel-dir",
-                package_dir,
-                "--find-links",
-                str(self.wheelhouse),
-                "--cache-dir",
-                self.cache_dir,
-                package_dir,
-                *args,
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            check=True,
-        )
+        try:
+            return subprocess.run(
+                [
+                    self.executable,
+                    "-m",
+                    "pip",
+                    "wheel",
+                    "--disable-pip-version-check",
+                    "--no-deps",
+                    "--wheel-dir",
+                    package_dir,
+                    "--find-links",
+                    str(self.wheelhouse),
+                    "--cache-dir",
+                    self.cache_dir,
+                    package_dir,
+                    *args,
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            print("Subprocess failed with output:")
+            print(e.stdout.decode("utf-8"))
+            raise
 
 
 @pytest.fixture(scope="session")
