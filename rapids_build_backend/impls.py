@@ -239,7 +239,10 @@ def _edit_git_commit(config):
     commit = _get_git_commit()
 
     if commit_file != "" and commit is not None:
-        bkp_commit_file = f".{os.path.basename(commit_file)}.rapids_build_backend.bak"
+        bkp_commit_file = os.path.join(
+            os.path.dirname(commit_file),
+            f".{os.path.basename(commit_file)}.rapids_build_backend.bak",
+        )
         try:
             if commit_file_type == "python":
                 with open(commit_file) as f:
@@ -266,7 +269,7 @@ def _edit_git_commit(config):
                     bkp_commit_file = None
 
                 with open(commit_file, "w") as f:
-                    f.write(f'{commit}\n')
+                    f.write(f"{commit}\n")
 
             yield
         finally:
