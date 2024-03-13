@@ -16,20 +16,6 @@ build:
   noarch: python
   script: python -m pip install . -vv --no-deps
 
-test:
-  requires:
-    - pip
-    - python >=3.9
-    {% for r in pyproject_data.get("project", {}).get("optional-dependencies", {}).get("test", []) %}
-    - {{ r }}
-    {% endfor %}
-  source_files:
-    - tests/
-    # Need the source for running tests, for whatever that's worth in a conda
-    # environment.
-    - rapids_build_backend/
-    - pyproject.toml
-
 requirements:
   host:
     - pip
