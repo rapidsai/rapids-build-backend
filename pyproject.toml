@@ -28,6 +28,7 @@ setuptools = [
     "wheel",
 ]
 test = [
+    "pytest",
     "jinja2",
 ]
 
