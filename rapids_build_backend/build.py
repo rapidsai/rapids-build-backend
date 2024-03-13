@@ -30,7 +30,7 @@ __all__ = [
 # - build_editable is optional, and we can't provide a safe default implementation
 #   because we won't support editable installs unless the wrapped backend does and the
 #   mere existence of the hook will change the behavior of the build frontend to think
-#   that the backend supports editable installs when rapids_build_backend only supports
+#   that the backend supports editable installs when rapids-build-backend only supports
 #   them if the wrapped backend does.
 # - prepare_metadata_for_build_wheel and prepare_metadata_for_build_editable are
 #   optional, and we can't provide safe default implementations because we won't create
