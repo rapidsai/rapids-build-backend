@@ -1,6 +1,6 @@
 # RAPIDS PEP517 build backend
 
-`rapids_build_backend` is an adapter around PEP517 builders that provides support for key RAPIDS requirements.
+`rapids-build-backend` is an adapter around PEP517 builders that provides support for key RAPIDS requirements.
 It currently support `scikit-build-core` and `setuptools` as the wrapped builder.
 The package's primary purpose is to automate the various bits of preprocessing that are typically done to RAPIDS package metadata prior to publishing packages.
 This includes the following notable changes:
@@ -30,7 +30,7 @@ Any option without a default is required.
 
 ## Outstanding questions
 
-- How should we split up build requirements between `build-system` and `tool.rapids_builder`? In theory any dependency that doesn't need suffixing could also go into `build-system.requires`. I think it's easier to teach that all dependencies other than `rapids_builder` itself should to into `tool.rapids_builder`, but I don't know how others feel.
+- How should we split up build requirements between `build-system` and `tool.rapids-build-backend`? In theory any dependency that doesn't need suffixing could also go into `build-system.requires`. I think it's easier to teach that all dependencies other than `rapids-build-backend` itself should to into `tool.rapids-build-backend`, but I don't know how others feel.
 
 ## Future improvements
 

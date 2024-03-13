@@ -25,7 +25,7 @@ from rapids_build_backend.impls import _edit_git_commit
 @patch("rapids_build_backend.impls._get_git_commit", Mock(return_value="abc123"))
 def test_edit_git_commit(commit_file_type, initial_contents, expected_contents):
     with tempfile.TemporaryDirectory() as d:
-        commit_file = os.path.join(d, "commit_file")
+        commit_file = os.path.join(d, "commit-file")
         if initial_contents is not None:
             with open(commit_file, "w") as f:
                 f.write(initial_contents)
@@ -45,7 +45,7 @@ def test_edit_git_commit(commit_file_type, initial_contents, expected_contents):
                 with open(commit_file) as f:
                     assert f.read() == expected_contents
                 assert os.path.exists(
-                    os.path.join(d, ".commit_file.rapids_build_backend.bak")
+                    os.path.join(d, ".commit-file.rapids-build-backend.bak")
                 ) == (initial_contents is not None)
 
         if initial_contents is not None:

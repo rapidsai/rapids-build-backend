@@ -24,9 +24,9 @@ def _get_backend(build_backend):
     except ImportError:
         raise ValueError(
             "Could not import build backend specified in pyproject.toml's "
-            "tool.rapids_build_backend table. Make sure you specified the right "
+            "tool.rapids-build-backend table. Make sure you specified the right "
             "optional dependency in your build-system.requires entry for "
-            "rapids_build_backend."
+            "rapids-build-backend."
         )
 
 
@@ -241,7 +241,7 @@ def _edit_git_commit(config):
     if commit_file != "" and commit is not None:
         bkp_commit_file = os.path.join(
             os.path.dirname(commit_file),
-            f".{os.path.basename(commit_file)}.rapids_build_backend.bak",
+            f".{os.path.basename(commit_file)}.rapids-build-backend.bak",
         )
         try:
             if commit_file_type == "python":
@@ -309,7 +309,7 @@ def _edit_pyproject(config):
         }
 
     pyproject_file = "pyproject.toml"
-    bkp_pyproject_file = ".pyproject.toml.rapids_build_backend.bak"
+    bkp_pyproject_file = ".pyproject.toml.rapids-build-backend.bak"
     try:
         shutil.move(pyproject_file, bkp_pyproject_file)
         with open(pyproject_file, "wb") as f:
@@ -325,11 +325,11 @@ def _edit_pyproject(config):
 # potential issues with assuming the right pyproject.toml is readable at import time (we
 # need to load pyproject.toml to know what the build backend is). Note that this also
 # prevents us from using something like functools.wraps to copy the docstrings from the
-# backend's hooks to the rapids_build_backend hooks, but that's not a big deal because
+# backend's hooks to the rapids-build-backend hooks, but that's not a big deal because
 # these functions only executed by the build frontend and are not user-facing. This
 # approach also ignores the possibility that the backend may not define certain optional
 # hooks because these definitions assume that they will only be called if the wrapped
-# backend implements them by virtue of the logic in rapids_build_backend's build module
+# backend implements them by virtue of the logic in rapids-build-backend's build module
 # (the actual build backend, which conditionally imports these functions).
 def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)

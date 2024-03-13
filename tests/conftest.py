@@ -159,7 +159,7 @@ def pip_cache(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def wheelhouse(tmp_path_factory, pip_cache):
-    """A PEP 517 wheelhouse containing the local copy of rapids_build_backend."""
+    """A PEP 517 wheelhouse containing the local copy of rapids-build-backend."""
     wheelhouse = tmp_path_factory.mktemp("wheelhouse")
 
     # Build the rapids-builder wheel in a temporary directory where we can bump the
