@@ -44,9 +44,12 @@ def test_edit_git_commit(commit_file_type, initial_contents, expected_contents):
             with _edit_git_commit(config):
                 with open(commit_file) as f:
                     assert f.read() == expected_contents
-                assert os.path.exists(
-                    os.path.join(d, ".commit-file.rapids-build-backend.bak")
-                ) == (initial_contents is not None)
+                bkp_file = os.path.join(d, ".commit-file.rapids-build-backend.bak")
+                if initial_contents is not None:
+                    with open(bkp_file) as f:
+                        assert f.read() == initial_contents
+                else:
+                    assert not os.path.exists(bkp_file)
 
         if initial_contents is not None:
             with open(commit_file) as f:
