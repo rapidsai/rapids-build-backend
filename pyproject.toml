@@ -8,7 +8,7 @@ requires = [
 ]
 
 [project]
-name = "rapids_builder"
+name = "rapids_build_backend"
 version = "0.0.1"
 description = "Custom PEP517 builder for RAPIDS"
 dependencies = [
@@ -35,7 +35,7 @@ test = [
 license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
-include = ["rapids_builder*"]
+include = ["rapids_build_backend*"]
 
 [tool.ruff]
 lint.select = ["E", "F", "W", "I", "N", "UP"]

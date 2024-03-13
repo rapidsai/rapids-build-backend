@@ -60,7 +60,7 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
         "extras": {"test": ["dask-cuda==24.4.*"]},
         "build_requires": ["rmm"],
         "build_backend": "setuptools.build_meta",
-        "rapids_builder_extra": "setuptools",
+        "rapids_build_backend_extra": "setuptools",
     }
 
     package_dir = tmp_path / "pkg"
@@ -85,7 +85,7 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
         "extras": {"jit": ["ptxcompiler"]},
         "build_requires": ["rmm==24.4.*"],
         "build_backend": "scikit_build_core.build",
-        "rapids_builder_extra": "scikit-build-core",
+        "rapids_build_backend_extra": "scikit-build-core",
     }
 
     package_dir = tmp_path / "pkg"

@@ -5,7 +5,7 @@ import os
 import pytest
 from conftest import generate_from_template
 
-from rapids_builder.config import Config
+from rapids_build_backend.config import Config
 
 
 def setup_config_project(tmp_path, flag, config_value):

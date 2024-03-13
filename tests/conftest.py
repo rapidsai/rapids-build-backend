@@ -16,7 +16,7 @@ import tomli_w
 from jinja2 import Environment, FileSystemLoader
 from packaging.version import parse as parse_version
 
-from rapids_builder.impls import _get_cuda_major
+from rapids_build_backend.impls import _get_cuda_major
 
 DIR = Path(__file__).parent.parent.resolve()
 
@@ -152,21 +152,23 @@ def pip_cache(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def wheelhouse(tmp_path_factory, pip_cache):
-    """A PEP 517 wheelhouse containing the local copy of rapids_builder."""
+    """A PEP 517 wheelhouse containing the local copy of rapids_build_backend."""
     wheelhouse = tmp_path_factory.mktemp("wheelhouse")
 
     # Build the rapids-builder wheel in a temporary directory where we can bump the
     # version to ensure that it is preferred to any other available wheels.
-    rapids_builder_build_dir = tmp_path_factory.mktemp("rapids_builder_build_dir")
+    rapids_build_backend_build_dir = tmp_path_factory.mktemp(
+        "rapids_build_backend_build_dir"
+    )
 
     shutil.copytree(
         DIR,
-        rapids_builder_build_dir,
+        rapids_build_backend_build_dir,
         ignore=shutil.ignore_patterns("tests*"),
         dirs_exist_ok=True,
     )
 
-    pyproject_file = rapids_builder_build_dir / "pyproject.toml"
+    pyproject_file = rapids_build_backend_build_dir / "pyproject.toml"
     with open(pyproject_file, "rb") as f:
         pyproject = tomli.load(f)
     project_data = pyproject["project"]
@@ -187,7 +189,7 @@ def wheelhouse(tmp_path_factory, pip_cache):
             str(wheelhouse),
             "--cache-dir",
             pip_cache,
-            f"{rapids_builder_build_dir}",
+            f"{rapids_build_backend_build_dir}",
         ],
         check=True,
     )

@@ -1,9 +1,9 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 [build-system]
-build-backend = "rapids_builder.build"
+build-backend = "rapids_build_backend.build"
 requires = [
-    "rapids_builder[{{ rapids_builder_extra }}]",
+    "rapids_build_backend[{{ rapids_build_backend_extra }}]",
 ]
 
 [project]
@@ -26,7 +26,7 @@ dependencies = [
 
 {% endfor %}
 
-[tool.rapids_builder]
+[tool.rapids_build_backend]
 build-backend = "{{ build_backend }}"
 requires = [
 {% for require in build_requires %}

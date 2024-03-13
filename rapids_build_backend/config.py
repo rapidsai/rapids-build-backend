@@ -24,9 +24,9 @@ class Config:
         self.config_settings = config_settings or {}
         pyproject_data = _get_pyproject(dirname)
         try:
-            self.config = pyproject_data["tool"]["rapids_builder"]
+            self.config = pyproject_data["tool"]["rapids_build_backend"]
         except KeyError as e:
-            raise RuntimeError("No rapids_builder table in pyproject.toml") from e
+            raise RuntimeError("No rapids_build_backend table in pyproject.toml") from e
 
     def __getattr__(self, name):
         config_name = name.replace("_", "-")
