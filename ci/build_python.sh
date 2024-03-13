@@ -11,6 +11,6 @@ rapids-print-env
 
 rapids-logger "Begin py build"
 
-rapids-conda-retry mambabuild conda/recipes/rapids_build_backend
+rapids-conda-retry mambabuild conda/recipes/rapids-build-backend
 
 rapids-upload-conda-to-s3 python
