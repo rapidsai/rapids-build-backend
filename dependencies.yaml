@@ -1,0 +1,40 @@
+# Dependency list for https://github.com/rapidsai/dependency-file-generator
+files:
+  all:
+    output: none
+    includes:
+      - checks
+  checks:
+    output: none
+    includes:
+      - checks
+      - py_version
+channels:
+  - rapidsai
+  - rapidsai-nightly
+  - conda-forge
+dependencies:
+  checks:
+    common:
+      - output_types: [conda, requirements]
+        packages:
+          - pre-commit
+  py_version:
+    specific:
+      - output_types: conda
+        matrices:
+          - matrix:
+              py: "3.9"
+            packages:
+              - python=3.9
+          - matrix:
+              py: "3.10"
+            packages:
+              - python=3.10
+          - matrix:
+              py: "3.11"
+            packages:
+              - python=3.11
+          - matrix:
+            packages:
+              - python>=3.9,<3.12
