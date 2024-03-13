@@ -37,6 +37,11 @@ def _get_cuda_major(require_cuda=False):
     ----------
     require_cuda : bool
         If True, raise an exception if nvcc is not in the PATH. If False, return None.
+
+    Returns
+    -------
+    str or None
+        The CUDA major version (e.g., "11") or None if CUDA could not be detected.
     """
     try:
         nvcc_exists = (
@@ -64,6 +69,7 @@ def _get_cuda_major(require_cuda=False):
         raise
 
 
+@lru_cache
 def _get_cuda_suffix(require_cuda=False):
     """Get the CUDA suffix based on nvcc.
 
@@ -72,6 +78,12 @@ def _get_cuda_suffix(require_cuda=False):
     require_cuda : bool
         If True, raise an exception if CUDA could not be detected. If False, return an
         empty string.
+
+    Returns
+    -------
+    str
+        The CUDA suffix (e.g., "-cu11") or an empty string if CUDA could not be
+        detected.
     """
     if (major := _get_cuda_major(require_cuda)) is None:
         return ""
@@ -119,7 +131,26 @@ _CUDA_11_ONLY_WHEELS = (
 )
 
 
-def _suffix_dependencies(config, dependencies=None):
+def _add_cuda_suffix(req, cuda_suffix, cuda_major):
+    req = Requirement(req)
+    if req.name == "cupy" and cuda_major is not None:
+        req.name += f"-cuda{cuda_major}x"
+    elif req.name in _VERSIONED_RAPIDS_WHEELS:
+        req.name += cuda_suffix
+
+    return str(req)
+
+
+def _update_specifier(req):
+    req = Requirement(req)
+    if (
+        req.name in _VERSIONED_RAPIDS_WHEELS or req.name in _UNVERSIONED_RAPIDS_WHEELS
+    ) and req.name not in _CUDA_11_ONLY_WHEELS:
+        req.specifier &= SpecifierSet(">=0.0.0a0")
+    return str(req)
+
+
+def _process_dependencies(config, dependencies=None):
     """Add the CUDA suffix to any versioned RAPIDS wheels in dependencies.
 
     If dependencies is None, then config.requires is used.
@@ -136,44 +167,44 @@ def _suffix_dependencies(config, dependencies=None):
     list of str
         The dependencies with the CUDA suffix added to any versioned RAPIDS wheels.
     """
+    # Note that this implementation is currently suboptimal, in each step to allow the
+    # steps to be more freely composable based on options. We could optimize by using a
+    # single loop with multiple nested conditionals, but that would make the logic
+    # harder to understand and modify. The performance of this code should be negligible
+    # in the context of a build anyway.
     dependencies = dependencies or config.requires
-    new_dependencies = []
-    suffix = _get_cuda_suffix(config.require_cuda)
-    for req in dependencies:
-        req = Requirement(req)
 
-        # cupy is a special case because it's not a RAPIDS wheel. If we can't
-        # determine the local CUDA version, then we fall back to making the sdist of
-        # cupy on PyPI the dependency.
-        major = _get_cuda_major(config.require_cuda)
-        if req.name == "cupy" and major is not None:
-            req.name += f"-cuda{major}x"
-        else:
-            is_cuda_11_wheel = any(req.name == w for w in _CUDA_11_ONLY_WHEELS)
-            if is_cuda_11_wheel:
-                # These wheels only exist for CUDA 11.
-                if major != "11":
-                    continue
+    # Step 1: Filter out CUDA 11-only wheels if we're not in a CUDA 11 build. Skip this
+    # step if if we were unable to detect a CUDA version.
+    major = _get_cuda_major(config.require_cuda)
+    if major is not None and major != "11":
+        dependencies = filter(
+            lambda dep: dep not in _CUDA_11_ONLY_WHEELS,
+            dependencies,
+        )
 
-            is_versioned_wheel = any(req.name == w for w in _VERSIONED_RAPIDS_WHEELS)
-            is_unversioned_wheel = any(
-                req.name == w for w in _UNVERSIONED_RAPIDS_WHEELS
+    # Step 2: Allow nightlies of RAPIDS packages except in release builds. Do this
+    # before suffixing the names so that lookups in _update_specifier are accurate.
+    if not config.only_release_deps:
+        dependencies = map(
+            _update_specifier,
+            dependencies,
+        )
+
+    # Step 3: Add the CUDA suffix to any versioned RAPIDS wheels. This step may be
+    # explicitly skipped by setting the disable_cuda_suffix option to True, or
+    # implicitly skipped if we were unable to detect a CUDA version and require_cuda was
+    # False.
+    if not config.disable_cuda_suffix:
+        suffix = _get_cuda_suffix(config.require_cuda)
+        # If we can't determine the local CUDA version then we can skip this step
+        if suffix:
+            dependencies = map(
+                lambda dep: _add_cuda_suffix(dep, suffix, major),
+                dependencies,
             )
 
-            if is_versioned_wheel:
-                req.name += suffix
-
-            # Allow nightlies of RAPIDS packages except in release builds. Also,
-            # ptxcompiler and cubinlinker don't release regular alpha versions.
-            if (
-                (is_versioned_wheel or is_unversioned_wheel)
-                and not config.only_release_deps
-                and not is_cuda_11_wheel
-            ):
-                req.specifier &= SpecifierSet(">=0.0.0a0")
-
-        new_dependencies.append(str(req))
-    return new_dependencies
+    return list(dependencies)
 
 
 @lru_cache
@@ -248,14 +279,14 @@ def _edit_pyproject(config):
 
     dependencies = pyproject["project"].get("dependencies")
     if dependencies is not None:
-        project_data["dependencies"] = _suffix_dependencies(
+        project_data["dependencies"] = _process_dependencies(
             config, project_data["dependencies"]
         )
 
     optional_dependencies = pyproject["project"].get("optional-dependencies")
     if optional_dependencies is not None:
         project_data["optional-dependencies"] = {
-            extra: _suffix_dependencies(config, deps)
+            extra: _process_dependencies(config, deps)
             for extra, deps in optional_dependencies.items()
         }
 
@@ -285,7 +316,7 @@ def _edit_pyproject(config):
 def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        requires = _suffix_dependencies(config)
+        requires = _process_dependencies(config)
 
         if hasattr(
             backend := _get_backend(config.build_backend),
@@ -299,7 +330,7 @@ def get_requires_for_build_wheel(config_settings):
 def get_requires_for_build_sdist(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        requires = _suffix_dependencies(config)
+        requires = _process_dependencies(config)
 
         if hasattr(
             backend := _get_backend(config.build_backend),
@@ -313,7 +344,7 @@ def get_requires_for_build_sdist(config_settings):
 def get_requires_for_build_editable(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        requires = _suffix_dependencies(config)
+        requires = _process_dependencies(config)
 
         if hasattr(
             backend := _get_backend(config.build_backend),
