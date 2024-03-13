@@ -5,7 +5,7 @@
 {% set summary = pyproject_data.get('project', {}).get('description') %}
 
 package:
-  name: rapids-build-backend
+  name: rapids_build_backend
   version: {{ version }}
 
 source:
