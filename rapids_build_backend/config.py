@@ -32,7 +32,9 @@ class Config:
     def __getattr__(self, name):
         config_name = name.replace("_", "-")
         if config_name in Config.config_options:
-            default_value, allows_override, allowed_values = Config.config_options[config_name]
+            default_value, allows_override, allowed_values = Config.config_options[
+                config_name
+            ]
 
             # If overrides are allowed environment variables take precedence over the
             # config_settings dict.
@@ -48,15 +50,21 @@ class Config:
                                 f"{env_var} must be 'true' or 'false', not {str_val}"
                             )
                         return str_val == "true"
-                    return self._check_value(env_var, os.environ[env_var], allowed_values)
+                    return self._check_value(
+                        env_var, os.environ[env_var], allowed_values
+                    )
 
                 if config_name in self.config_settings:
                     if isinstance(default_value, bool):
                         return self.config_settings[config_name] == "true"
-                    return self._check_value(config_name, self.config_settings[config_name], allowed_values)
+                    return self._check_value(
+                        config_name, self.config_settings[config_name], allowed_values
+                    )
 
             try:
-                return self._check_value(config_name, self.config[config_name], allowed_values)
+                return self._check_value(
+                    config_name, self.config[config_name], allowed_values
+                )
             except KeyError:
                 if default_value is not None:
                     return default_value
