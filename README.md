@@ -15,6 +15,8 @@ In cases where more dynamic customization is sensible, suitable environment vari
 
 ## Supported configuration
 
+Any option without a default is required.
+
 | Option                | Definition                                                          | Type      | Default      | Supports dynamic modification |
 |-----------------------|---------------------------------------------------------------------|-----------|--------------|-------------------------------|
 | `build-backend`       | The wrapped build backend (e.g. `setuptools.build_meta`)            | string    |              | N                             |
