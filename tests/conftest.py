@@ -15,6 +15,7 @@ import tomli
 import tomli_w
 from jinja2 import Environment, FileSystemLoader
 from packaging.version import parse as parse_version
+
 from rapids_build_backend.impls import _get_cuda_major
 
 DIR = Path(__file__).parent.parent.resolve()
