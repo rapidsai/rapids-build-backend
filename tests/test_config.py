@@ -27,6 +27,10 @@ def setup_config_project(tmp_path, flag, config_value):
     [
         ("commit-file", '"pkg/_version.py"', "pkg/_version.py"),
         ("commit-file", None, ""),
+        ("commit-file-type", '"python"', "python"),
+        ("commit-file-type", '"raw"', "raw"),
+        ("commit-file-type", '"invalid"', ValueError),
+        ("commit-file-type", None, "python"),
         ("disable-cuda-suffix", "true", True),
         ("disable-cuda-suffix", "false", False),
         ("disable-cuda-suffix", None, False),
@@ -40,7 +44,11 @@ def setup_config_project(tmp_path, flag, config_value):
 )
 def test_config(tmp_path, flag, config_value, expected):
     config = Config(setup_config_project(tmp_path, flag, config_value))
-    assert getattr(config, flag.replace("-", "_")) == expected
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            getattr(config, flag.replace("-", "_"))
+    else:
+        assert getattr(config, flag.replace("-", "_")) == expected
 
 
 @pytest.mark.parametrize(

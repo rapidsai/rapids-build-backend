@@ -235,32 +235,46 @@ def _edit_git_commit(config):
     at build time.
     """
     commit_file = config.commit_file
+    commit_file_type = config.commit_file_type
     commit = _get_git_commit()
 
     if commit_file != "" and commit is not None:
         bkp_commit_file = f".{os.path.basename(commit_file)}.rapids_build_backend.bak"
         try:
-            with open(commit_file) as f:
-                lines = f.readlines()
+            if commit_file_type == "python":
+                with open(commit_file) as f:
+                    lines = f.readlines()
 
-            shutil.move(commit_file, bkp_commit_file)
+                shutil.move(commit_file, bkp_commit_file)
 
-            with open(commit_file, "w") as f:
-                wrote = False
-                for line in lines:
-                    if "__git_commit__" in line:
+                with open(commit_file, "w") as f:
+                    wrote = False
+                    for line in lines:
+                        if "__git_commit__" in line:
+                            f.write(f'__git_commit__ = "{commit}"\n')
+                            wrote = True
+                        else:
+                            f.write(line)
+                    # If no git commit line was found, write it at the end of the file.
+                    if not wrote:
                         f.write(f'__git_commit__ = "{commit}"\n')
-                        wrote = True
-                    else:
-                        f.write(line)
-                # If no git commit line was found, write it at the end of the file.
-                if not wrote:
-                    f.write(f'__git_commit__ = "{commit}"\n')
+
+            elif commit_file_type == "raw":
+                try:
+                    shutil.move(commit_file, bkp_commit_file)
+                except FileNotFoundError:
+                    bkp_commit_file = None
+
+                with open(commit_file, "w") as f:
+                    f.write(f'{commit}\n')
 
             yield
         finally:
             # Restore by moving rather than writing to avoid any formatting changes.
-            shutil.move(bkp_commit_file, commit_file)
+            if bkp_commit_file:
+                shutil.move(bkp_commit_file, commit_file)
+            else:
+                os.unlink(commit_file)
     else:
         yield
 
