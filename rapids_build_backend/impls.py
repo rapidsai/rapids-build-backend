@@ -136,10 +136,6 @@ def _add_cuda_suffix(req, cuda_suffix, cuda_major):
     req = Requirement(req)
     if req.name == "cupy" and cuda_major is not None:
         req.name += f"-cuda{cuda_major}x"
-    elif req.name == "cuda-python" and cuda_major is not None:
-        req.specifier &= SpecifierSet(
-            f">={cuda_major}.0.0,<{int(cuda_major) + 1}.0.0.dev0"
-        )
     elif req.name in _VERSIONED_RAPIDS_WHEELS:
         req.name += cuda_suffix
 
