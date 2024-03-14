@@ -6,7 +6,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from rapids_build_backend.impls import _edit_git_commit
+from rapids_build_backend.impls import (
+    _VERSIONED_RAPIDS_WHEELS,
+    _add_cuda_suffix,
+    _edit_git_commit,
+)
 
 
 @pytest.mark.parametrize(
@@ -43,3 +47,25 @@ def test_edit_git_commit(initial_contents):
 
         assert not os.path.exists(bkp_commit_file)
         check_initial_contents(commit_file)
+
+
+@pytest.mark.parametrize(
+    ["initial_req", "cuda_suffix", "cuda_major", "expected_req"],
+    [
+        ("cupy", "", "11", "cupy-cuda11x"),
+        ("cupy", "", "12", "cupy-cuda12x"),
+        ("cupy", "", None, "cupy"),
+        ("cuda-python", "", "11", "cuda-python<12.0.0.dev0,>=11.0.0"),
+        ("cuda-python>=11.7.1", "", "12", "cuda-python<13.0.0.dev0,>=11.7.1,>=12.0.0"),
+        ("cuda-python", "", None, "cuda-python"),
+        ("cuda-python>=11.7.1", "", None, "cuda-python>=11.7.1"),
+        *((name, "-cu11", "11", f"{name}-cu11") for name in _VERSIONED_RAPIDS_WHEELS),
+        *((name, "-cu12", "12", f"{name}-cu12") for name in _VERSIONED_RAPIDS_WHEELS),
+        *((name, "", None, name) for name in _VERSIONED_RAPIDS_WHEELS),
+        ("poetry", "-cu11", "11", "poetry"),
+        ("poetry", "-cu12", "12", "poetry"),
+        ("poetry", "", None, "poetry"),
+    ],
+)
+def tests_add_cuda_suffix(initial_req, cuda_suffix, cuda_major, expected_req):
+    assert _add_cuda_suffix(initial_req, cuda_suffix, cuda_major) == expected_req
