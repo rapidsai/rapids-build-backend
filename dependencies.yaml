@@ -3,17 +3,49 @@ files:
   all:
     output: none
     includes:
+      - build
       - checks
+      - py_version
+      - run
+      - test
   checks:
     output: none
     includes:
       - checks
       - py_version
+  build:
+    output: pyproject
+    pyproject_dir: .
+    extras:
+      table: build-system
+    includes:
+      - build
+  run:
+    output: pyproject
+    pyproject_dir: .
+    extras:
+      table: project
+    includes:
+      - run
+  test_extras:
+    output: pyproject
+    pyproject_dir: .
+    extras:
+      table: project.optional-dependencies
+      key: test
+    includes:
+      - test
 channels:
   - rapidsai
   - rapidsai-nightly
   - conda-forge
 dependencies:
+  build:
+    common:
+      - output_types: [conda, requirements, pyproject]
+        packages:
+          - setuptools
+          - wheel
   checks:
     common:
       - output_types: [conda, requirements]
@@ -38,3 +70,16 @@ dependencies:
           - matrix:
             packages:
               - python>=3.9,<3.12
+  run:
+    common:
+      - output_types: [conda, requirements, pyproject]
+        packages:
+          - packaging
+          - tomli
+          - tomli-w
+  test:
+    common:
+      - output_types: [conda, requirements, pyproject]
+        packages:
+          - jinja2
+          - pytest
