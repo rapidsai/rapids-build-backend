@@ -3,34 +3,38 @@ files:
   all:
     output: none
     includes:
+      - build
       - checks
+      - py_version
+      - run
+      - test
   checks:
     output: none
     includes:
       - checks
       - py_version
-  py_build:
+  build:
     output: pyproject
     pyproject_dir: .
     extras:
       table: build-system
     includes:
       - build
-  py_run:
+  run:
     output: pyproject
     pyproject_dir: .
     extras:
       table: project
     includes:
       - run
-  py_optional_test:
+  test_extras:
     output: pyproject
     pyproject_dir: .
     extras:
       table: project.optional-dependencies
       key: test
     includes:
-      - test_python
+      - test
 channels:
   - rapidsai
   - rapidsai-nightly
@@ -73,7 +77,7 @@ dependencies:
           - packaging
           - tomli
           - tomli-w
-  test_python:
+  test:
     common:
       - output_types: [conda, requirements, pyproject]
         packages:
