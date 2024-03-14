@@ -142,7 +142,7 @@ def _add_cuda_suffix(req, cuda_suffix, cuda_major):
     return str(req)
 
 
-def _update_specifier(req):
+def _add_alpha_specifier(req):
     req = Requirement(req)
     if (
         req.name in _VERSIONED_RAPIDS_WHEELS or req.name in _UNVERSIONED_RAPIDS_WHEELS
@@ -185,10 +185,10 @@ def _process_dependencies(config, dependencies=None):
         )
 
     # Step 2: Allow nightlies of RAPIDS packages except in release builds. Do this
-    # before suffixing the names so that lookups in _update_specifier are accurate.
-    if not config.only_release_deps:
+    # before suffixing the names so that lookups in _add_alpha_specifier are accurate.
+    if config.allow_nightly_deps:
         dependencies = map(
-            _update_specifier,
+            _add_alpha_specifier,
             dependencies,
         )
 

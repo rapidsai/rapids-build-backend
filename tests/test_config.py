@@ -25,14 +25,14 @@ def setup_config_project(tmp_path, flag, config_value):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
+        ("allow-nightly-deps", "true", True),
+        ("allow-nightly-deps", "false", False),
+        ("allow-nightly-deps", None, True),
         ("commit-file", '"pkg/_version.py"', "pkg/_version.py"),
         ("commit-file", None, ""),
         ("disable-cuda-suffix", "true", True),
         ("disable-cuda-suffix", "false", False),
         ("disable-cuda-suffix", None, False),
-        ("only-release-deps", "true", True),
-        ("only-release-deps", "false", False),
-        ("only-release-deps", None, False),
         ("require-cuda", "true", True),
         ("require-cuda", "false", False),
         ("require-cuda", None, True),
@@ -46,10 +46,10 @@ def test_config(tmp_path, flag, config_value, expected):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
+        ("allow-nightly-deps", "true", True),
+        ("allow-nightly-deps", "false", False),
         ("disable-cuda-suffix", "true", True),
         ("disable-cuda-suffix", "false", False),
-        ("only-release-deps", "true", True),
-        ("only-release-deps", "false", False),
         ("require-cuda", "true", True),
         ("require-cuda", "false", False),
     ],
@@ -73,10 +73,10 @@ def test_config_env_var(tmp_path, flag, config_value, expected):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
+        ("allow-nightly-deps", "true", True),
+        ("allow-nightly-deps", "false", False),
         ("disable-cuda-suffix", "true", True),
         ("disable-cuda-suffix", "false", False),
-        ("only-release-deps", "true", True),
-        ("only-release-deps", "false", False),
         ("require-cuda", "true", True),
         ("require-cuda", "false", False),
     ],
