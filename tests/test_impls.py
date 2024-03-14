@@ -10,11 +10,11 @@ from rapids_build_backend.impls import _edit_git_commit
 
 
 @pytest.mark.parametrize(
-    ["initial_contents"],
+    "initial_contents",
     [
-        ("def456\n",),
-        ("",),
-        (None,),
+        "def456\n",
+        "",
+        None,
     ],
 )
 @patch("rapids_build_backend.impls._get_git_commit", Mock(return_value="abc123"))
