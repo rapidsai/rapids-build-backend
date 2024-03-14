@@ -20,7 +20,7 @@ Any option without a default is required.
 | Option                | Definition                                                          | Type      | Default      | Supports dynamic modification |
 |-----------------------|---------------------------------------------------------------------|-----------|--------------|-------------------------------|
 | `build-backend`       | The wrapped build backend (e.g. `setuptools.build_meta`)            | string    |              | N                             |
-| `commit-file`         | The file in which to write `__git_commit__`                         | string    | "" (No file) | N                             |
+| `commit-file`         | The file in which to write the git commit hash                      | string    | "" (No file) | N                             |
 | `disable-cuda-suffix` | If true, don't try to write CUDA suffixes                           | bool      | false        | Y                             |
 | `only-release-deps`   | If true, do not append alpha specifiers to dependencies             | bool      | false        | Y                             |
 | `require-cuda`        | If false, builds will succeed even if nvcc is not available         | bool      | true         | Y                             |

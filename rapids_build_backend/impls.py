@@ -238,29 +238,26 @@ def _edit_git_commit(config):
     commit = _get_git_commit()
 
     if commit_file != "" and commit is not None:
-        bkp_commit_file = f".{os.path.basename(commit_file)}.rapids-build-backend.bak"
+        bkp_commit_file = os.path.join(
+            os.path.dirname(commit_file),
+            f".{os.path.basename(commit_file)}.rapids-build-backend.bak",
+        )
         try:
-            with open(commit_file) as f:
-                lines = f.readlines()
-
-            shutil.move(commit_file, bkp_commit_file)
+            try:
+                shutil.move(commit_file, bkp_commit_file)
+            except FileNotFoundError:
+                bkp_commit_file = None
 
             with open(commit_file, "w") as f:
-                wrote = False
-                for line in lines:
-                    if "__git_commit__" in line:
-                        f.write(f'__git_commit__ = "{commit}"\n')
-                        wrote = True
-                    else:
-                        f.write(line)
-                # If no git commit line was found, write it at the end of the file.
-                if not wrote:
-                    f.write(f'__git_commit__ = "{commit}"\n')
+                f.write(f"{commit}\n")
 
             yield
         finally:
             # Restore by moving rather than writing to avoid any formatting changes.
-            shutil.move(bkp_commit_file, commit_file)
+            if bkp_commit_file:
+                shutil.move(bkp_commit_file, commit_file)
+            else:
+                os.unlink(commit_file)
     else:
         yield
 
