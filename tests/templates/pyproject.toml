@@ -3,7 +3,8 @@
 [build-system]
 build-backend = "rapids_build_backend.build"
 requires = [
-    "rapids-build-backend[{{ rapids_build_backend_extra }}]",
+    "rapids-build-backend",
+    "{{ build_backend_package }}",
 ]
 
 [project]
