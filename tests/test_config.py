@@ -46,10 +46,10 @@ def test_config(tmp_path, flag, config_value, expected):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
-        ("disable-cuda-suffix", "true", True),
-        ("disable-cuda-suffix", "false", False),
         ("allow-nightly-deps", "true", True),
         ("allow-nightly-deps", "false", False),
+        ("disable-cuda-suffix", "true", True),
+        ("disable-cuda-suffix", "false", False),
         ("require-cuda", "true", True),
         ("require-cuda", "false", False),
     ],
