@@ -28,6 +28,7 @@ def test_edit_git_commit(initial_contents):
 
     with tempfile.TemporaryDirectory() as d:
         commit_file = os.path.join(d, "commit-file")
+        bkp_commit_file = os.path.join(d, ".commit-file.rapids-build-backend.bak")
         if initial_contents is not None:
             with open(commit_file, "w") as f:
                 f.write(initial_contents)
@@ -38,8 +39,7 @@ def test_edit_git_commit(initial_contents):
         with _edit_git_commit(config):
             with open(commit_file) as f:
                 assert f.read() == "abc123\n"
-            check_initial_contents(
-                os.path.join(d, ".commit-file.rapids-build-backend.bak")
-            )
+            check_initial_contents(bkp_commit_file)
 
+        assert not os.path.exists(bkp_commit_file)
         check_initial_contents(commit_file)
