@@ -341,7 +341,7 @@ def get_requires_for_build_sdist(config_settings):
 
 def get_requires_for_build_editable(config_settings):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    with _edit_pyproject(config):
         requires = _process_dependencies(config)
 
         if hasattr(
@@ -371,7 +371,7 @@ def build_sdist(sdist_directory, config_settings=None):
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    with _edit_pyproject(config):
         return _get_backend(config.build_backend).build_editable(
             wheel_directory, config_settings, metadata_directory
         )
