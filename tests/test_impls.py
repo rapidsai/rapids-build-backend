@@ -10,20 +10,15 @@ from rapids_build_backend.impls import _edit_git_commit
 
 
 @pytest.mark.parametrize(
-    ["commit_file_type", "initial_contents", "expected_contents"],
+    ["initial_contents"],
     [
-        (
-            "python",
-            '# Begin Python file\n__git_commit__ = ""\n# End Python file\n',
-            '# Begin Python file\n__git_commit__ = "abc123"\n# End Python file\n',
-        ),
-        ("python", None, FileNotFoundError),
-        ("raw", "def456\n", "abc123\n"),
-        ("raw", None, "abc123\n"),
+        ("def456\n",),
+        ("",),
+        (None,),
     ],
 )
 @patch("rapids_build_backend.impls._get_git_commit", Mock(return_value="abc123"))
-def test_edit_git_commit(commit_file_type, initial_contents, expected_contents):
+def test_edit_git_commit(initial_contents):
     def check_initial_contents(filename):
         if initial_contents is not None:
             with open(filename) as f:
@@ -39,20 +34,12 @@ def test_edit_git_commit(commit_file_type, initial_contents, expected_contents):
 
         config = Mock(
             commit_file=commit_file,
-            commit_file_type=commit_file_type,
         )
-        if isinstance(expected_contents, type) and issubclass(
-            expected_contents, Exception
-        ):
-            with pytest.raises(expected_contents):
-                with _edit_git_commit(config):
-                    pass
-        else:
-            with _edit_git_commit(config):
-                with open(commit_file) as f:
-                    assert f.read() == expected_contents
-                check_initial_contents(
-                    os.path.join(d, ".commit-file.rapids-build-backend.bak")
-                )
+        with _edit_git_commit(config):
+            with open(commit_file) as f:
+                assert f.read() == "abc123\n"
+            check_initial_contents(
+                os.path.join(d, ".commit-file.rapids-build-backend.bak")
+            )
 
         check_initial_contents(commit_file)
