@@ -30,6 +30,7 @@ jobs:
       - name: Check style
         run: "ci/check_style.sh"
   conda-build:
+    runs-on: ubuntu-latest
     container:
       image: rapidsai/ci-conda:latest
     steps:
@@ -41,6 +42,7 @@ jobs:
       - name: Python build
         run: "ci/build_python.sh"
   wheel-build:
+    runs-on: ubuntu-latest
     container:
       image: "rapidsai/ci-wheel:latest"
     steps:
