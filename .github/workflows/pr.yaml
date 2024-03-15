@@ -12,22 +12,13 @@ concurrency:
 jobs:
   check-style:
     runs-on: ubuntu-latest
-    # TODO: See if we can use even smaller containers.
     container:
       image: rapidsai/ci-conda:latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        env:
-          GIT_TRACE_PACKET: 1
-          GIT_TRACE: 1
-          GIT_CURL_VERBOSE: 1
         with:
           fetch-depth: 0
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-0|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Check style
         run: "ci/check_style.sh"
   conda-build:
@@ -37,10 +28,6 @@ jobs:
       image: rapidsai/ci-conda:latest
     steps:
       - uses: actions/checkout@v3
-        env:
-          GIT_TRACE_PACKET: 1
-          GIT_TRACE: 1
-          GIT_CURL_VERBOSE: 1
       - name: Python build
         run: "ci/build_python.sh"
   wheel-build:
@@ -51,9 +38,5 @@ jobs:
     steps:
       - name: checkout code repo
         uses: actions/checkout@v3
-        env:
-          GIT_TRACE_PACKET: 1
-          GIT_TRACE: 1
-          GIT_CURL_VERBOSE: 1
       - name: Build and repair the wheel
         run: "./ci/build_wheel.sh"
