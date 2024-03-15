@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  conda-build:
+  run-checks:
     uses: ./.github/workflows/checks.yaml
     with:
       publish: true
