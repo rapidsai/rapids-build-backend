@@ -12,6 +12,7 @@ concurrency:
 jobs:
   check-style:
     runs-on: ubuntu-latest
+    # TODO: See if we can use even smaller containers.
     container:
       image: rapidsai/ci-conda:latest
     steps:
@@ -30,6 +31,7 @@ jobs:
       - name: Check style
         run: "ci/check_style.sh"
   conda-build:
+    needs: check-style
     runs-on: ubuntu-latest
     container:
       image: rapidsai/ci-conda:latest
@@ -42,6 +44,7 @@ jobs:
       - name: Python build
         run: "ci/build_python.sh"
   wheel-build:
+    needs: check-style
     runs-on: ubuntu-latest
     container:
       image: "rapidsai/ci-wheel:latest"
