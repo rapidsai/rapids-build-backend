@@ -19,7 +19,7 @@ jobs:
       image: rapidsai/ci-conda:latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Check style
@@ -30,7 +30,7 @@ jobs:
     container:
       image: rapidsai/ci-conda:latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Python build
         run: "./ci/build_python.sh ${{ inputs.publish }}"
   wheel-build:
@@ -40,6 +40,6 @@ jobs:
       image: "rapidsai/ci-wheel:latest"
     steps:
       - name: checkout code repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build and repair the wheel
         run: "./ci/build_wheel.sh ${{ inputs.publish }}"
