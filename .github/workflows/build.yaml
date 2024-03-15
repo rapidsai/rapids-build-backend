@@ -13,21 +13,7 @@ concurrency:
 
 jobs:
   conda-build:
-    needs: check-style
-    runs-on: ubuntu-latest
-    container:
-      image: rapidsai/ci-conda:latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Python build
-        run: "ci/build_python.sh true"
-  wheel-build:
-    needs: check-style
-    runs-on: ubuntu-latest
-    container:
-      image: "rapidsai/ci-wheel:latest"
-    steps:
-      - name: checkout code repo
-        uses: actions/checkout@v3
-      - name: Build and repair the wheel
-        run: "./ci/build_wheel.sh true"
+    uses: ./.github/workflows/checks.yaml
+    with:
+      publish: true
+    secrets: inherit

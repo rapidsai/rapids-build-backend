@@ -1,0 +1,45 @@
+name: checks
+
+on:
+  workflow_call:
+    inputs:
+      publish:
+        required: false
+        type: string
+        default: "false"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-style:
+    runs-on: ubuntu-latest
+    container:
+      image: rapidsai/ci-conda:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Check style
+        run: "ci/check_style.sh"
+  conda-build:
+    needs: check-style
+    runs-on: ubuntu-latest
+    container:
+      image: rapidsai/ci-conda:latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Python build
+        run: "./ci/build_python.sh ${{ inputs.publish }}"
+  wheel-build:
+    needs: check-style
+    runs-on: ubuntu-latest
+    container:
+      image: "rapidsai/ci-wheel:latest"
+    steps:
+      - name: checkout code repo
+        uses: actions/checkout@v3
+      - name: Build and repair the wheel
+        run: "./ci/build_wheel.sh ${{ inputs.publish }}"
