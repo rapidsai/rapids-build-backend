@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   run-checks:
-    uses: ./.github/workflows/checks.yaml
+    uses: ./.github/workflows/checks-and-builds.yaml
     with:
       publish: false
     secrets: inherit
