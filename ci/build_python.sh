@@ -5,8 +5,8 @@ set -euo pipefail
 
 UPLOAD_PACKAGES="${1:-false}"
 
-PKG_DIR="${PWD}/dist/"
-conda mambabuild --output-folder "${PKG_DIR}" conda/recipes/rapids-build-backend
+PKG_DIR="${PWD}/conda_package/"
+rapids-conda-retry mambabuild --output-folder "${PKG_DIR}" conda/recipes/rapids-build-backend
 
 if [ "$UPLOAD_PACKAGES" = "true" ]; then
     # TODO: Figure out the best way to get CONDA_PKG_FILE
