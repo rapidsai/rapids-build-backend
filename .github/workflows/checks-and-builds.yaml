@@ -1,0 +1,45 @@
+name: checks
+
+on:
+  workflow_call:
+    inputs:
+      publish:
+        required: false
+        type: string
+        default: "false"
+
+jobs:
+  check-style:
+    runs-on: ubuntu-latest
+    container:
+      image: rapidsai/ci-conda:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check style
+        run: "./ci/check_style.sh"
+  conda-build:
+    needs: check-style
+    runs-on: ubuntu-latest
+    container:
+      image: rapidsai/ci-conda:latest
+    env:
+      PUBLISH: "${{ inputs.publish }}"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python build
+        run: "./ci/build_python.sh ${PUBLISH}"
+  wheel-build:
+    needs: check-style
+    runs-on: ubuntu-latest
+    container:
+      image: rapidsai/ci-wheel:latest
+    env:
+      PUBLISH: "${{ inputs.publish }}"
+    steps:
+      - name: checkout code repo
+        uses: actions/checkout@v4
+      - name: Build and repair the wheel
+        run: "./ci/build_wheel.sh ${PUBLISH}"

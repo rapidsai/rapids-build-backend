@@ -1,17 +1,19 @@
-name: pr
+name: build
 
 on:
   push:
     branches:
-      - "pull-request/[0-9]+"
+      - "main"
+    tags:
+      - "v*.*.*"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
   run-checks:
     uses: ./.github/workflows/checks-and-builds.yaml
     with:
-      publish: false
+      publish: true
     secrets: inherit

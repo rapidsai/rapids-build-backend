@@ -3,12 +3,15 @@
 
 set -euo pipefail
 
-source rapids-date-string
+UPLOAD_PACKAGES="${1:-false}"
 
 python -m pip wheel . -w dist -vv --no-deps --disable-pip-version-check
 
-RAPIDS_PY_WHEEL_NAME="rapids-build-backend" rapids-upload-wheels-to-s3 dist
-
 # Run tests
-python -m pip install $(ls dist/*.whl)[test]
+WHL_FILE=$(ls dist/*.whl)
+python -m pip install "${WHL_FILE}[test]"
 python -m pytest -v tests/
+
+if [ "$UPLOAD_PACKAGES" = "true" ]; then
+    anaconda -t "${RAPIDS_CONDA_TOKEN}" upload --skip-existing --no-progress ${WHL_FILE}
+fi
