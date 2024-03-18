@@ -29,6 +29,13 @@ jobs:
       PUBLISH: "${{ inputs.publish }}"
     steps:
       - uses: actions/checkout@v4
+      - name: Set Proper Conda Upload Token
+        run: |
+          RAPIDS_CONDA_TOKEN=${{ secrets.CONDA_RAPIDSAI_NIGHTLY_TOKEN }}
+          if rapids-is-release-build; then
+            RAPIDS_CONDA_TOKEN=${{ secrets.CONDA_RAPIDSAI_TOKEN }}
+          fi
+          echo "RAPIDS_CONDA_TOKEN=${RAPIDS_CONDA_TOKEN}" >> "${GITHUB_ENV}"
       - name: Python build
         run: "./ci/build_python.sh ${PUBLISH}"
   wheel-build:
@@ -38,6 +45,7 @@ jobs:
       image: rapidsai/ci-wheel:latest
     env:
       PUBLISH: "${{ inputs.publish }}"
+      RAPIDS_CONDA_TOKEN: ${{ secrets.CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN }}
     steps:
       - name: checkout code repo
         uses: actions/checkout@v4
