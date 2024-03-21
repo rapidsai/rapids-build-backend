@@ -22,10 +22,10 @@ repos:
         args: ["--fix"]
       - id: ruff-format
   - repo: https://github.com/rapidsai/pre-commit-hooks
-    rev: v0.0.2
+    rev: v0.0.3
     hooks:
       - id: verify-copyright
-        args: ["--main-branch", "main"]
+        args: [--fix, --main-branch=main]
 
 
 default_language_version:
