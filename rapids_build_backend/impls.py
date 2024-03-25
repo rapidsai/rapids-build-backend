@@ -63,7 +63,7 @@ def _get_cuda_version(require_cuda=False):
 
         output_lines = process_output.stdout.decode().splitlines()
 
-        match = re.search(r"release (\d+\.\d+)", output_lines[3])
+        match = re.search(r"release (\d+)\.(\d+)", output_lines[3])
         if match is None:
             raise ValueError("Failed to parse CUDA version from nvcc output.")
         return match.group(1), match.group(2)
