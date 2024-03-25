@@ -2,15 +2,27 @@
 
 import os.path
 import tempfile
+from contextlib import contextmanager
 from unittest.mock import Mock, patch
 
 import pytest
 
 from rapids_build_backend.impls import (
-    _VERSIONED_RAPIDS_WHEELS,
-    _add_cuda_suffix,
     _edit_git_commit,
+    _edit_pyproject,
+    _get_cuda_suffix,
 )
+from rapids_build_backend.utils import _get_pyproject
+
+
+@contextmanager
+def set_cwd(cwd):
+    old_cwd = os.getcwd()
+    os.chdir(cwd)
+    try:
+        yield
+    finally:
+        os.chdir(old_cwd)
 
 
 @pytest.mark.parametrize(
@@ -50,18 +62,120 @@ def test_edit_git_commit(initial_contents):
 
 
 @pytest.mark.parametrize(
-    ["initial_req", "cuda_suffix", "cuda_major", "expected_req"],
+    ["cuda_version", "cuda_suffix", "cuda_python_requirement"],
     [
-        ("cupy", "", "11", "cupy-cuda11x"),
-        ("cupy", "", "12", "cupy-cuda12x"),
-        ("cupy", "", None, "cupy"),
-        *((name, "-cu11", "11", f"{name}-cu11") for name in _VERSIONED_RAPIDS_WHEELS),
-        *((name, "-cu12", "12", f"{name}-cu12") for name in _VERSIONED_RAPIDS_WHEELS),
-        *((name, "", None, name) for name in _VERSIONED_RAPIDS_WHEELS),
-        ("poetry", "-cu11", "11", "poetry"),
-        ("poetry", "-cu12", "12", "poetry"),
-        ("poetry", "", None, "poetry"),
+        (("11", "5"), "-cu11", "cuda-python>=11.5,<11.6.dev0"),
+        (("12", "1"), "-cu12", "cuda-python>=12.1,<12.2.dev0"),
     ],
 )
-def tests_add_cuda_suffix(initial_req, cuda_suffix, cuda_major, expected_req):
-    assert _add_cuda_suffix(initial_req, cuda_suffix, cuda_major) == expected_req
+def test_edit_pyproject(cuda_version, cuda_suffix, cuda_python_requirement):
+    with tempfile.TemporaryDirectory() as d:
+        original_contents = """[project]
+name = "test-project"
+dependencies = []
+
+[build-system]
+requires = []
+"""
+
+        with set_cwd(d):
+            with open("pyproject.toml", "w") as f:
+                f.write(original_contents)
+
+            with open("dependencies.yaml", "w") as f:
+                f.write("""
+files:
+  project:
+    output: pyproject
+    includes:
+      - project
+    pyproject_dir: .
+    matrix:
+      cuda: ["11.5", "12.1"]
+      arch: ["x86_64"]
+    extras:
+      table: project
+  build_system:
+    output: pyproject
+    includes:
+      - build_system
+    pyproject_dir: .
+    extras:
+      table: build-system
+  other_project:
+    output: pyproject
+    includes:
+      - bad
+    pyproject_dir: python
+    extras:
+      table: project
+  conda:
+    output: conda
+    includes:
+      - bad
+dependencies:
+  project:
+    common:
+      - output_types: [pyproject]
+        packages:
+          - tomli
+    specific:
+      - output_types: [pyproject]
+        matrices:
+          - matrix:
+              arch: "x86_64"
+              cuda: "11.5"
+            packages:
+              - cuda-python>=11.5,<11.6.dev0
+          - matrix:
+              arch: "x86_64"
+              cuda: "12.1"
+            packages:
+              - cuda-python>=12.1,<12.2.dev0
+  build_system:
+    common:
+      - output_types: [pyproject]
+        packages:
+          - scikit-build-core
+  bad:
+    common:
+      - output_types: [pyproject, conda]
+        packages:
+          - bad-package
+""")
+            config = Mock(
+                require_cuda=False,
+                dependencies_file="dependencies.yaml",
+            )
+
+            with patch(
+                "rapids_build_backend.impls._get_cuda_version",
+                Mock(return_value=cuda_version),
+            ), patch(
+                "rapids_build_backend.impls._get_cuda_suffix",
+                _get_cuda_suffix.__wrapped__,
+            ), patch(
+                "rapids_build_backend.utils._get_pyproject", _get_pyproject.__wrapped__
+            ):
+                with _edit_pyproject(config):
+                    with open("pyproject.toml") as f:
+                        assert (
+                            f.read()
+                            == f"""[project]
+name = "test-project{cuda_suffix}"
+dependencies = [
+    "{cuda_python_requirement}",
+    "tomli",
+]
+
+[build-system]
+requires = [
+    "scikit-build-core",
+]
+"""
+                        )
+                    with open(".pyproject.toml.rapids-build-backend.bak") as f:
+                        assert f.read() == original_contents
+
+            with open("pyproject.toml") as f:
+                assert f.read() == original_contents

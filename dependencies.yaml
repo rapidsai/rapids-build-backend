@@ -74,7 +74,9 @@ dependencies:
     common:
       - output_types: [conda, requirements, pyproject]
         packages:
+          - PyYAML
           - packaging
+          - rapids-dependency-file-generator<2.0.dev0
           - tomli
           - tomli-w
   test:

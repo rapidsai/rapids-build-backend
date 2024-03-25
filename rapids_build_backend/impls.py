@@ -9,11 +9,14 @@ from functools import lru_cache
 from importlib import import_module
 
 import tomli_w
-from packaging.requirements import Requirement
-from packaging.specifiers import SpecifierSet
+import yaml
+from rapids_dependency_file_generator.rapids_dependency_file_generator import (
+    get_requested_output_types,
+    make_dependency_files,
+)
 
+from . import utils
 from .config import Config
-from .utils import _get_pyproject
 
 
 @lru_cache
@@ -31,7 +34,7 @@ def _get_backend(build_backend):
 
 
 @lru_cache
-def _get_cuda_major(require_cuda=False):
+def _get_cuda_version(require_cuda=False):
     """Get the CUDA suffix based on nvcc.
 
     Parameters
@@ -60,10 +63,10 @@ def _get_cuda_major(require_cuda=False):
 
         output_lines = process_output.stdout.decode().splitlines()
 
-        match = re.search(r"release (\d+)", output_lines[3])
+        match = re.search(r"release (\d+\.\d+)", output_lines[3])
         if match is None:
             raise ValueError("Failed to parse CUDA version from nvcc output.")
-        return match.group(1)
+        return match.group(1), match.group(2)
     except Exception:
         if not require_cuda:
             return None
@@ -86,126 +89,9 @@ def _get_cuda_suffix(require_cuda=False):
         The CUDA suffix (e.g., "-cu11") or an empty string if CUDA could not be
         detected.
     """
-    if (major := _get_cuda_major(require_cuda)) is None:
+    if (version := _get_cuda_version(require_cuda)) is None:
         return ""
-    return f"-cu{major}"
-
-
-# Wheels with a CUDA suffix.
-_VERSIONED_RAPIDS_WHEELS = [
-    "rmm",
-    "pylibcugraphops",
-    "pylibcugraph",
-    "nx-cugraph",
-    "dask-cudf",
-    "cuspatial",
-    "cuproj",
-    "cuml",
-    "cugraph",
-    "cudf",
-    "ptxcompiler",
-    "cubinlinker",
-    "cugraph-dgl",
-    "cugraph-pyg",
-    "cugraph-equivariant",
-    "raft-dask",
-    "pylibwholegraph",
-    "pylibraft",
-    "cuxfilter",
-    "cucim",
-    "ucx-py",
-    "ucxx",
-    "pynvjitlink",
-    "distributed-ucxx",
-]
-
-# Wheels without a CUDA suffix.
-_UNVERSIONED_RAPIDS_WHEELS = [
-    "dask-cuda",
-    "rapids-dask-dependency",
-]
-
-# Wheels that don't release regular alpha versions
-_CUDA_11_ONLY_WHEELS = (
-    "ptxcompiler",
-    "cubinlinker",
-)
-
-
-def _add_cuda_suffix(req, cuda_suffix, cuda_major):
-    req = Requirement(req)
-    if req.name == "cupy" and cuda_major is not None:
-        req.name += f"-cuda{cuda_major}x"
-    elif req.name in _VERSIONED_RAPIDS_WHEELS:
-        req.name += cuda_suffix
-
-    return str(req)
-
-
-def _add_alpha_specifier(req):
-    req = Requirement(req)
-    if (
-        req.name in _VERSIONED_RAPIDS_WHEELS or req.name in _UNVERSIONED_RAPIDS_WHEELS
-    ) and req.name not in _CUDA_11_ONLY_WHEELS:
-        req.specifier &= SpecifierSet(">=0.0.0a0")
-    return str(req)
-
-
-def _process_dependencies(config, dependencies=None):
-    """Add the CUDA suffix to any versioned RAPIDS wheels in dependencies.
-
-    If dependencies is None, then config.requires is used.
-
-    Parameters
-    ----------
-    config : Config
-        The project's configuration.
-    dependencies : list of str, optional
-        The dependencies to suffix. If None, then config.requires is used.
-
-    Returns
-    -------
-    list of str
-        The dependencies with the CUDA suffix added to any versioned RAPIDS wheels.
-    """
-    # Note that this implementation is currently suboptimal, in each step to allow the
-    # steps to be more freely composable based on options. We could optimize by using a
-    # single loop with multiple nested conditionals, but that would make the logic
-    # harder to understand and modify. The performance of this code should be negligible
-    # in the context of a build anyway.
-    dependencies = dependencies or config.requires
-
-    # Step 1: Filter out CUDA 11-only wheels if we're not in a CUDA 11 build. Skip this
-    # step if if we were unable to detect a CUDA version.
-    major = _get_cuda_major(config.require_cuda)
-    if major is not None and major != "11":
-        dependencies = filter(
-            lambda dep: dep not in _CUDA_11_ONLY_WHEELS,
-            dependencies,
-        )
-
-    # Step 2: Allow nightlies of RAPIDS packages except in release builds. Do this
-    # before suffixing the names so that lookups in _add_alpha_specifier are accurate.
-    if config.allow_nightly_deps:
-        dependencies = map(
-            _add_alpha_specifier,
-            dependencies,
-        )
-
-    # Step 3: Add the CUDA suffix to any versioned RAPIDS wheels. This step may be
-    # explicitly skipped by setting the disable_cuda_suffix option to True, or
-    # implicitly skipped if we were unable to detect a CUDA version and require_cuda was
-    # False.
-    if not config.disable_cuda_suffix:
-        suffix = _get_cuda_suffix(config.require_cuda)
-        # If we can't determine the local CUDA version then we can skip this step
-        if suffix:
-            dependencies = map(
-                lambda dep: _add_cuda_suffix(dep, suffix, major),
-                dependencies,
-            )
-
-    return list(dependencies)
+    return f"-cu{version[0]}"
 
 
 @lru_cache
@@ -271,27 +157,39 @@ def _edit_pyproject(config):
     being built. This is useful for projects that want to build wheels
     with a different name than the package name.
     """
-    pyproject = _get_pyproject()
-    project_data = pyproject["project"]
-    project_data["name"] += _get_cuda_suffix(config.require_cuda)
-
-    dependencies = pyproject["project"].get("dependencies")
-    if dependencies is not None:
-        project_data["dependencies"] = _process_dependencies(
-            config, project_data["dependencies"]
-        )
-
-    optional_dependencies = pyproject["project"].get("optional-dependencies")
-    if optional_dependencies is not None:
-        project_data["optional-dependencies"] = {
-            extra: _process_dependencies(config, deps)
-            for extra, deps in optional_dependencies.items()
-        }
-
     pyproject_file = "pyproject.toml"
     bkp_pyproject_file = ".pyproject.toml.rapids-build-backend.bak"
+
+    cuda_version = _get_cuda_version(config.require_cuda)
+
+    with open(config.dependencies_file) as f:
+        parsed_config = yaml.load(f, Loader=yaml.FullLoader)
+    files = {}
+    for file_key, file_config in parsed_config["files"].items():
+        if "pyproject" not in get_requested_output_types(file_config["output"]):
+            continue
+        pyproject_dir = os.path.join(
+            os.path.dirname(config.dependencies_file),
+            file_config.get("pyproject_dir", "."),
+        )
+        if not os.path.exists(pyproject_dir):
+            continue
+        if not os.path.samefile(pyproject_dir, "."):
+            continue
+        file_config["output"] = ["pyproject"]
+        if cuda_version is not None:
+            file_config.setdefault("matrix", {})["cuda"] = [
+                f"{cuda_version[0]}.{cuda_version[1]}"
+            ]
+        files[file_key] = file_config
+    parsed_config["files"] = files
+
     try:
-        shutil.move(pyproject_file, bkp_pyproject_file)
+        shutil.copyfile(pyproject_file, bkp_pyproject_file)
+        make_dependency_files(parsed_config, config.dependencies_file, False)
+        pyproject = utils._get_pyproject()
+        project_data = pyproject["project"]
+        project_data["name"] += _get_cuda_suffix(config.require_cuda)
         with open(pyproject_file, "wb") as f:
             tomli_w.dump(pyproject, f)
         yield
@@ -314,7 +212,7 @@ def _edit_pyproject(config):
 def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        requires = _process_dependencies(config)
+        requires = []
 
         if hasattr(
             backend := _get_backend(config.build_backend),
@@ -328,7 +226,7 @@ def get_requires_for_build_wheel(config_settings):
 def get_requires_for_build_sdist(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        requires = _process_dependencies(config)
+        requires = []
 
         if hasattr(
             backend := _get_backend(config.build_backend),
@@ -342,7 +240,7 @@ def get_requires_for_build_sdist(config_settings):
 def get_requires_for_build_editable(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
-        requires = _process_dependencies(config)
+        requires = []
 
         if hasattr(
             backend := _get_backend(config.build_backend),
