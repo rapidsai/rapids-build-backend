@@ -12,7 +12,6 @@ from rapids_build_backend.impls import (
     _edit_pyproject,
     _get_cuda_suffix,
 )
-from rapids_build_backend.utils import _get_pyproject
 
 
 @contextmanager
@@ -155,8 +154,6 @@ dependencies:
             ), patch(
                 "rapids_build_backend.impls._get_cuda_suffix",
                 _get_cuda_suffix.__wrapped__,
-            ), patch(
-                "rapids_build_backend.utils._get_pyproject", _get_pyproject.__wrapped__
             ):
                 with _edit_pyproject(config):
                     with open("pyproject.toml") as f:

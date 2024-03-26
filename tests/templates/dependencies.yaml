@@ -1,0 +1,120 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.
+files:
+  pyproject_project:
+    output: pyproject
+    includes:
+      - pyproject_project
+    pyproject_dir: .
+    extras:
+      table: project
+  pyproject_build_system:
+    output: pyproject
+    includes:
+      - pyproject_build_system
+    pyproject_dir: .
+    extras:
+      table: tool.rapids-build-backend
+      key: requires
+{% for extra in extras %}
+  {{ extra }}:
+    output: pyproject
+    includes:
+      - {{ extra }}
+    pyproject_dir: .
+    extras:
+      table: project.optional-dependencies
+      key: {{ extra }}
+{% endfor %}
+dependencies:
+  pyproject_project:
+{% if dependencies.get("common", []) %}
+    common:
+      - output_types: [pyproject]
+        packages:
+{% for dependency in dependencies.get("common", []) %}
+          - "{{ dependency }}"
+{% endfor %}
+{% endif %}
+    specific:
+      - output_types: [pyproject]
+        matrices:
+{% if dependencies.get("cu11", []) %}
+          - matrix:
+              cuda: "11.*"
+            packages:
+{% for dependency in dependencies.get("cu11", []) %}
+              - "{{ dependency }}"
+{% endfor %}
+{% endif %}
+{% if dependencies.get("cu12", []) %}
+          - matrix:
+              cuda: "12.*"
+            packages:
+{% for dependency in dependencies.get("cu12", []) %}
+              - "{{ dependency }}"
+{% endfor %}
+{% endif %}
+          - matrix:
+            packages: []
+  pyproject_build_system:
+{% if build_requires.get("common", []) %}
+    common:
+      - output_types: [pyproject]
+        packages:
+{% for require in build_requires.get("common", []) %}
+          - "{{ require }}"
+{% endfor %}
+{% endif %}
+    specific:
+      - output_types: [pyproject]
+        matrices:
+{% if build_requires.get("cu11", []) %}
+          - matrix:
+              cuda: "11.*"
+            packages:
+{% for require in build_requires.get("cu11", []) %}
+              - "{{ require }}"
+{% endfor %}
+{% endif %}
+{% if build_requires.get("cu12", []) %}
+          - matrix:
+              cuda: "12.*"
+            packages:
+{% for require in build_requires.get("cu12", []) %}
+              - "{{ require }}"
+{% endfor %}
+{% endif %}
+          - matrix:
+            packages: []
+{% for extra, deps in extras.items() %}
+  {{ extra }}:
+{% if deps.get("common", []) %}
+    common:
+      - output_types: [pyproject]
+        packages:
+{% for dep in deps.get("common", []) %}
+          - "{{ dep }}"
+{% endfor %}
+{% endif %}
+    specific:
+      - output_types: [pyproject]
+        matrices:
+{% if deps.get("cu11", []) %}
+          - matrix:
+              cuda: "11.*"
+            packages:
+{% for dep in deps.get("cu11", []) %}
+              - "{{ dep }}"
+{% endfor %}
+{% endif %}
+{% if deps.get("cu12", []) %}
+          - matrix:
+              cuda: "12.*"
+            packages:
+{% for dep in deps.get("cu12", []) %}
+              - "{{ dep }}"
+{% endfor %}
+{% endif %}
+          - matrix:
+            packages: []
+{% endfor %}

@@ -11,29 +11,13 @@ requires = [
 name = "{{ name }}"
 version = "0.0.1"
 requires-python = ">=3.9"
-dependencies = [
-{% for dependency in dependencies %}
-    "{{ dependency }}",
-{% endfor %}
-]
+dependencies = []
 
 [project.optional-dependencies]
-{% for extra, deps in extras.items() %}
-{{ extra }} = [
-{% for dep in deps %}
-    "{{ dep }}",
-{% endfor %}
-]
-
-{% endfor %}
 
 [tool.rapids-build-backend]
 build-backend = "{{ build_backend }}"
-requires = [
-{% for require in build_requires %}
-    "{{ require }}",
-{% endfor %}
-]
+requires = []
 {% for flag, value in flags.items() %}
 {{ flag }} = {{ value }}
 {% endfor %}

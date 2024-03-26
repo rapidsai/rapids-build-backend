@@ -212,7 +212,9 @@ def _edit_pyproject(config):
 def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        requires = []
+        # Reload the config for a possibly updated tool.rapids-build-backend.requires
+        reloaded_config = Config(config_settings=config_settings)
+        requires = list(reloaded_config.requires)
 
         if hasattr(
             backend := _get_backend(config.build_backend),
@@ -226,7 +228,9 @@ def get_requires_for_build_wheel(config_settings):
 def get_requires_for_build_sdist(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config), _edit_git_commit(config):
-        requires = []
+        # Reload the config for a possibly updated tool.rapids-build-backend.requires
+        reloaded_config = Config(config_settings=config_settings)
+        requires = list(reloaded_config.requires)
 
         if hasattr(
             backend := _get_backend(config.build_backend),
@@ -240,7 +244,9 @@ def get_requires_for_build_sdist(config_settings):
 def get_requires_for_build_editable(config_settings):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
-        requires = []
+        # Reload the config for a possibly updated tool.rapids-build-backend.requires
+        reloaded_config = Config(config_settings=config_settings)
+        requires = list(reloaded_config.requires)
 
         if hasattr(
             backend := _get_backend(config.build_backend),

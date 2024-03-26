@@ -235,9 +235,9 @@ def jinja_environment():
 _TEMPLATE_DEFAULTS = {
     "pyproject.toml": {
         "name": "pkg",
-        "dependencies": [],
+        "dependencies": {},
         "extras": {},
-        "build_requires": [],
+        "build_requires": {},
         "flags": {},
         "build_backend": "setuptools.build_meta",
     }
