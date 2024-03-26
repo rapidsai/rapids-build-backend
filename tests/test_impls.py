@@ -61,13 +61,34 @@ def test_edit_git_commit(initial_contents):
 
 
 @pytest.mark.parametrize(
-    ["cuda_version", "cuda_suffix", "cuda_python_requirement"],
     [
-        (("11", "5"), "-cu11", "cuda-python>=11.5,<11.6.dev0"),
-        (("12", "1"), "-cu12", "cuda-python>=12.1,<12.2.dev0"),
+        "cuda_version",
+        "cuda_suffix",
+        "cuda_python_requirement",
+        "matrix",
+        "arch_requirement",
+    ],
+    [
+        (("11", "5"), "-cu11", "cuda-python>=11.5,<11.6.dev0", "", "some-x86-package"),
+        (
+            ("11", "5"),
+            "-cu11",
+            "cuda-python>=11.5,<11.6.dev0",
+            "arch=aarch64",
+            "some-arm-package",
+        ),
+        (
+            ("12", "1"),
+            "-cu12",
+            "cuda-python>=12.1,<12.2.dev0",
+            "arch=ppc64",
+            "some-ppc-package",
+        ),
     ],
 )
-def test_edit_pyproject(cuda_version, cuda_suffix, cuda_python_requirement):
+def test_edit_pyproject(
+    cuda_version, cuda_suffix, cuda_python_requirement, matrix, arch_requirement
+):
     with tempfile.TemporaryDirectory() as d:
         original_contents = """\
 [project]
@@ -89,6 +110,7 @@ files:
     output: pyproject
     includes:
       - project
+      - arch
     pyproject_dir: .
     matrix:
       cuda: ["11.5", "12.1"]
@@ -123,12 +145,10 @@ dependencies:
       - output_types: [pyproject]
         matrices:
           - matrix:
-              arch: "x86_64"
               cuda: "11.5"
             packages:
               - cuda-python>=11.5,<11.6.dev0
           - matrix:
-              arch: "x86_64"
               cuda: "12.1"
             packages:
               - cuda-python>=12.1,<12.2.dev0
@@ -137,6 +157,22 @@ dependencies:
       - output_types: [pyproject]
         packages:
           - scikit-build-core
+  arch:
+    specific:
+      - output_types: [pyproject]
+        matrices:
+          - matrix:
+              arch: x86_64
+            packages:
+              - some-x86-package
+          - matrix:
+              arch: aarch64
+            packages:
+              - some-arm-package
+          - matrix:
+              arch: ppc64
+            packages:
+              - some-ppc-package
   bad:
     common:
       - output_types: [pyproject, conda]
@@ -146,6 +182,7 @@ dependencies:
             config = Mock(
                 require_cuda=False,
                 dependencies_file="dependencies.yaml",
+                matrix=matrix,
             )
 
             with patch(
@@ -164,6 +201,7 @@ dependencies:
 name = "test-project{cuda_suffix}"
 dependencies = [
     "{cuda_python_requirement}",
+    "{arch_requirement}",
     "tomli",
 ]
 

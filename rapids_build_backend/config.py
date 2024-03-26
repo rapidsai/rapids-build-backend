@@ -17,6 +17,7 @@ class Config:
         "commit-file": ("", False),
         "dependencies-file": ("dependencies.yaml", True),
         "disable-cuda-suffix": (False, True),
+        "matrix": ("", True),
         "require-cuda": (True, True),
         "requires": ([], False),
     }

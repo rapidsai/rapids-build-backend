@@ -10,6 +10,7 @@ from importlib import import_module
 
 import tomli_w
 import yaml
+from rapids_dependency_file_generator.cli import generate_matrix
 from rapids_dependency_file_generator.rapids_dependency_file_generator import (
     get_requested_output_types,
     make_dependency_files,
@@ -177,6 +178,8 @@ def _edit_pyproject(config):
         if not os.path.samefile(pyproject_dir, "."):
             continue
         file_config["output"] = ["pyproject"]
+        if config.matrix:
+            file_config["matrix"] = generate_matrix(config.matrix)
         if cuda_version is not None:
             file_config.setdefault("matrix", {})["cuda"] = [
                 f"{cuda_version[0]}.{cuda_version[1]}"
