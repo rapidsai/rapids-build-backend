@@ -69,7 +69,7 @@ def patch_nvcc_if_needed(nvcc_version):
     try:
         # Only create a patch if one is required. In addition to reducing overhead, this
         # also ensures that we test the real nvcc and don't mask any relevant errors.
-        if _get_cuda_version()[0] != nvcc_version:
+        if _get_cuda_version() is None or _get_cuda_version()[0] != nvcc_version:
             nvcc = _create_nvcc(nvcc_version)
             os.environ["PATH"] = os.pathsep.join(
                 [os.path.dirname(nvcc), os.environ["PATH"]]
