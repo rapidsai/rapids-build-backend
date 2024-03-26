@@ -62,6 +62,8 @@ def test_edit_git_commit(initial_contents):
 
 @pytest.mark.parametrize(
     [
+        "pyproject_dir",
+        "dependencies_file",
         "cuda_version",
         "cuda_suffix",
         "cuda_python_requirement",
@@ -69,8 +71,18 @@ def test_edit_git_commit(initial_contents):
         "arch_requirement",
     ],
     [
-        (("11", "5"), "-cu11", "cuda-python>=11.5,<11.6.dev0", "", "some-x86-package"),
         (
+            ".",
+            "dependencies.yaml",
+            ("11", "5"),
+            "-cu11",
+            "cuda-python>=11.5,<11.6.dev0",
+            "",
+            "some-x86-package",
+        ),
+        (
+            ".",
+            "dependencies.yaml",
             ("11", "5"),
             "-cu11",
             "cuda-python>=11.5,<11.6.dev0",
@@ -78,6 +90,8 @@ def test_edit_git_commit(initial_contents):
             "some-arm-package",
         ),
         (
+            "python",
+            "../dependencies.yaml",
             ("12", "1"),
             "-cu12",
             "cuda-python>=12.1,<12.2.dev0",
@@ -87,7 +101,13 @@ def test_edit_git_commit(initial_contents):
     ],
 )
 def test_edit_pyproject(
-    cuda_version, cuda_suffix, cuda_python_requirement, matrix, arch_requirement
+    pyproject_dir,
+    dependencies_file,
+    cuda_version,
+    cuda_suffix,
+    cuda_python_requirement,
+    matrix,
+    arch_requirement,
 ):
     with tempfile.TemporaryDirectory() as d:
         original_contents = """\
@@ -98,20 +118,23 @@ dependencies = []
 [build-system]
 requires = []
 """
+        full_pyproject_dir = os.path.join(d, pyproject_dir)
+        if not os.path.exists(full_pyproject_dir):
+            os.mkdir(full_pyproject_dir)
 
-        with set_cwd(d):
+        with set_cwd(full_pyproject_dir):
             with open("pyproject.toml", "w") as f:
                 f.write(original_contents)
 
-            with open("dependencies.yaml", "w") as f:
-                f.write("""\
+            with open(dependencies_file, "w") as f:
+                f.write(f"""\
 files:
   project:
     output: pyproject
     includes:
       - project
       - arch
-    pyproject_dir: .
+    pyproject_dir: {pyproject_dir}
     matrix:
       cuda: ["11.5", "12.1"]
       arch: ["x86_64"]
@@ -121,14 +144,14 @@ files:
     output: pyproject
     includes:
       - build_system
-    pyproject_dir: .
+    pyproject_dir: {pyproject_dir}
     extras:
       table: build-system
   other_project:
     output: pyproject
     includes:
       - bad
-    pyproject_dir: python
+    pyproject_dir: python_bad
     extras:
       table: project
   conda:
@@ -181,7 +204,7 @@ dependencies:
 """)
             config = Mock(
                 require_cuda=False,
-                dependencies_file="dependencies.yaml",
+                dependencies_file=dependencies_file,
                 matrix=matrix,
             )
 
