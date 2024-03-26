@@ -11,6 +11,7 @@ from importlib import import_module
 import tomli_w
 import yaml
 from rapids_dependency_file_generator.cli import generate_matrix
+from rapids_dependency_file_generator.constants import default_pyproject_dir
 from rapids_dependency_file_generator.rapids_dependency_file_generator import (
     get_requested_output_types,
     make_dependency_files,
@@ -171,7 +172,7 @@ def _edit_pyproject(config):
             continue
         pyproject_dir = os.path.join(
             os.path.dirname(config.dependencies_file),
-            file_config.get("pyproject_dir", "."),
+            file_config.get("pyproject_dir", default_pyproject_dir),
         )
         if not os.path.exists(pyproject_dir):
             continue
