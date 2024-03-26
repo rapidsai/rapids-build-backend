@@ -9,7 +9,7 @@ requires = [
 
 [project]
 name = "rapids-build-backend"
-version = "0.0.1"
+version = "0.0.2"
 description = "Custom PEP517 builder for RAPIDS"
 dependencies = [
     "PyYAML",
