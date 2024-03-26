@@ -70,7 +70,8 @@ def test_edit_git_commit(initial_contents):
 )
 def test_edit_pyproject(cuda_version, cuda_suffix, cuda_python_requirement):
     with tempfile.TemporaryDirectory() as d:
-        original_contents = """[project]
+        original_contents = """\
+[project]
 name = "test-project"
 dependencies = []
 
@@ -83,7 +84,7 @@ requires = []
                 f.write(original_contents)
 
             with open("dependencies.yaml", "w") as f:
-                f.write("""
+                f.write("""\
 files:
   project:
     output: pyproject
@@ -161,7 +162,8 @@ dependencies:
                     with open("pyproject.toml") as f:
                         assert (
                             f.read()
-                            == f"""[project]
+                            == f"""\
+[project]
 name = "test-project{cuda_suffix}"
 dependencies = [
     "{cuda_python_requirement}",
