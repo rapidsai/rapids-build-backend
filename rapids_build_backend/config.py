@@ -15,7 +15,9 @@ class Config:
         "allow-nightly-deps": (True, True),
         "build-backend": (None, False),
         "commit-file": ("", False),
+        "dependencies-file": ("dependencies.yaml", True),
         "disable-cuda-suffix": (False, True),
+        "matrix": ("", True),
         "require-cuda": (True, True),
         "requires": ([], False),
     }
