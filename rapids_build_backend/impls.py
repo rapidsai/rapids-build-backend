@@ -190,12 +190,12 @@ def _edit_pyproject(config):
             if cuda_version is not None:
                 matrix["cuda"] = [f"{cuda_version[0]}.{cuda_version[1]}"]
             rapids_dependency_file_generator.make_dependency_files(
-                parsed_config,
-                [file_key],
-                {rapids_dependency_file_generator.Output.PYPROJECT},
-                matrix,
-                [],
-                False,
+                parsed_config=parsed_config,
+                file_keys=[file_key],
+                output={rapids_dependency_file_generator.Output.PYPROJECT},
+                matrix=matrix,
+                prepend_channels=[],
+                to_stdout=False,
             )
         pyproject = utils._get_pyproject()
         project_data = pyproject["project"]
