@@ -136,7 +136,7 @@ files:
       - arch
     pyproject_dir: {pyproject_dir}
     matrix:
-      cuda: ["11.5", "12.1"]
+      cuda: ["11.5"]
       arch: ["x86_64"]
     extras:
       table: project

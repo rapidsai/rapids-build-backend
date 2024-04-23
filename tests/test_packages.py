@@ -114,4 +114,4 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     if nvcc_version == "11":
         assert extras == {"jit": {"ptxcompiler-cu11"}}
     else:
-        assert extras == {}
+        assert extras == {"jit": set()}
