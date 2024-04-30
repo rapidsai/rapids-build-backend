@@ -166,37 +166,42 @@ def _edit_pyproject(config):
 
     cuda_version = _get_cuda_version(config.require_cuda)
 
-    parsed_config = rapids_dependency_file_generator.load_config_from_file(
-        config.dependencies_file
-    )
+    try:
+        parsed_config = rapids_dependency_file_generator.load_config_from_file(
+            config.dependencies_file
+        )
+    except FileNotFoundError:
+        parsed_config = None
 
     try:
         shutil.copyfile(pyproject_file, bkp_pyproject_file)
-        for file_key, file_config in parsed_config.files.items():
-            if (
-                rapids_dependency_file_generator.Output.PYPROJECT
-                not in file_config.output
-            ):
-                continue
-            pyproject_dir = os.path.join(
-                os.path.dirname(config.dependencies_file),
-                file_config.pyproject_dir,
-            )
-            if not (
-                os.path.exists(pyproject_dir) and os.path.samefile(pyproject_dir, ".")
-            ):
-                continue
-            matrix = _parse_matrix(config.matrix_entry) or dict(file_config.matrix)
-            if cuda_version is not None:
-                matrix["cuda"] = [f"{cuda_version[0]}.{cuda_version[1]}"]
-            rapids_dependency_file_generator.make_dependency_files(
-                parsed_config=parsed_config,
-                file_keys=[file_key],
-                output={rapids_dependency_file_generator.Output.PYPROJECT},
-                matrix=matrix,
-                prepend_channels=[],
-                to_stdout=False,
-            )
+        if parsed_config:
+            for file_key, file_config in parsed_config.files.items():
+                if (
+                    rapids_dependency_file_generator.Output.PYPROJECT
+                    not in file_config.output
+                ):
+                    continue
+                pyproject_dir = os.path.join(
+                    os.path.dirname(config.dependencies_file),
+                    file_config.pyproject_dir,
+                )
+                if not (
+                    os.path.exists(pyproject_dir)
+                    and os.path.samefile(pyproject_dir, ".")
+                ):
+                    continue
+                matrix = _parse_matrix(config.matrix_entry) or dict(file_config.matrix)
+                if cuda_version is not None:
+                    matrix["cuda"] = [f"{cuda_version[0]}.{cuda_version[1]}"]
+                rapids_dependency_file_generator.make_dependency_files(
+                    parsed_config=parsed_config,
+                    file_keys=[file_key],
+                    output={rapids_dependency_file_generator.Output.PYPROJECT},
+                    matrix=matrix,
+                    prepend_channels=[],
+                    to_stdout=False,
+                )
         pyproject = utils._get_pyproject()
         project_data = pyproject["project"]
         project_data["name"] += _get_cuda_suffix(config.require_cuda)
