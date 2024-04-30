@@ -205,7 +205,7 @@ dependencies:
             config = Mock(
                 require_cuda=False,
                 dependencies_file=dependencies_file,
-                matrix=matrix,
+                matrix_entry=matrix,
             )
 
             with patch(

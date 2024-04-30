@@ -12,12 +12,11 @@ class Config:
     # required) and whether it may be overridden by an environment variable or a config
     # setting.
     config_options = {
-        "allow-nightly-deps": (True, True),
         "build-backend": (None, False),
         "commit-file": ("", False),
         "dependencies-file": ("dependencies.yaml", True),
         "disable-cuda-suffix": (False, True),
-        "matrix": ("", True),
+        "matrix-entry": ("", True),
         "require-cuda": (True, True),
         "requires": ([], False),
     }

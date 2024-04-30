@@ -182,11 +182,11 @@ def _edit_pyproject(config):
                 os.path.dirname(config.dependencies_file),
                 file_config.pyproject_dir,
             )
-            if not os.path.exists(pyproject_dir):
+            if not (
+                os.path.exists(pyproject_dir) and os.path.samefile(pyproject_dir, ".")
+            ):
                 continue
-            if not os.path.samefile(pyproject_dir, "."):
-                continue
-            matrix = _parse_matrix(config.matrix) or dict(file_config.matrix)
+            matrix = _parse_matrix(config.matrix_entry) or dict(file_config.matrix)
             if cuda_version is not None:
                 matrix["cuda"] = [f"{cuda_version[0]}.{cuda_version[1]}"]
             rapids_dependency_file_generator.make_dependency_files(
