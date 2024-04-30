@@ -15,7 +15,7 @@ files:
     extras:
       table: tool.rapids-build-backend
       key: requires
-{% for extra in extras %}
+  {% for extra in extras %}
   {{ extra }}:
     output: pyproject
     includes:
@@ -24,97 +24,97 @@ files:
     extras:
       table: project.optional-dependencies
       key: {{ extra }}
-{% endfor %}
+  {% endfor %}
 dependencies:
   pyproject_project:
-{% if dependencies.get("common", []) %}
+    {% if dependencies.get("common", []) %}
     common:
       - output_types: [pyproject]
         packages:
-{% for dependency in dependencies.get("common", []) %}
+          {% for dependency in dependencies.get("common", []) %}
           - "{{ dependency }}"
-{% endfor %}
-{% endif %}
+          {% endfor %}
+    {% endif %}
     specific:
       - output_types: [pyproject]
         matrices:
-{% if dependencies.get("cu11", []) %}
+          {% if dependencies.get("cu11", []) %}
           - matrix:
               cuda: "11.*"
             packages:
-{% for dependency in dependencies.get("cu11", []) %}
+              {% for dependency in dependencies.get("cu11", []) %}
               - "{{ dependency }}"
-{% endfor %}
-{% endif %}
-{% if dependencies.get("cu12", []) %}
+              {% endfor %}
+          {% endif %}
+          {% if dependencies.get("cu12", []) %}
           - matrix:
               cuda: "12.*"
             packages:
-{% for dependency in dependencies.get("cu12", []) %}
+              {% for dependency in dependencies.get("cu12", []) %}
               - "{{ dependency }}"
-{% endfor %}
-{% endif %}
+              {% endfor %}
+          {% endif %}
           - matrix:
             packages: []
   pyproject_build_system:
-{% if build_requires.get("common", []) %}
+    {% if build_requires.get("common", []) %}
     common:
       - output_types: [pyproject]
         packages:
-{% for require in build_requires.get("common", []) %}
+          {% for require in build_requires.get("common", []) %}
           - "{{ require }}"
-{% endfor %}
-{% endif %}
+          {% endfor %}
+    {% endif %}
     specific:
       - output_types: [pyproject]
         matrices:
-{% if build_requires.get("cu11", []) %}
+          {% if build_requires.get("cu11", []) %}
           - matrix:
               cuda: "11.*"
             packages:
-{% for require in build_requires.get("cu11", []) %}
+              {% for require in build_requires.get("cu11", []) %}
               - "{{ require }}"
-{% endfor %}
-{% endif %}
-{% if build_requires.get("cu12", []) %}
+              {% endfor %}
+          {% endif %}
+          {% if build_requires.get("cu12", []) %}
           - matrix:
               cuda: "12.*"
             packages:
-{% for require in build_requires.get("cu12", []) %}
+              {% for require in build_requires.get("cu12", []) %}
               - "{{ require }}"
-{% endfor %}
-{% endif %}
+              {% endfor %}
+          {% endif %}
           - matrix:
             packages: []
-{% for extra, deps in extras.items() %}
+  {% for extra, deps in extras.items() %}
   {{ extra }}:
-{% if deps.get("common", []) %}
+    {% if deps.get("common", []) %}
     common:
       - output_types: [pyproject]
         packages:
-{% for dep in deps.get("common", []) %}
+          {% for dep in deps.get("common", []) %}
           - "{{ dep }}"
-{% endfor %}
-{% endif %}
+          {% endfor %}
+    {% endif %}
     specific:
       - output_types: [pyproject]
         matrices:
-{% if deps.get("cu11", []) %}
+          {% if deps.get("cu11", []) %}
           - matrix:
               cuda: "11.*"
             packages:
-{% for dep in deps.get("cu11", []) %}
+              {% for dep in deps.get("cu11", []) %}
               - "{{ dep }}"
-{% endfor %}
-{% endif %}
-{% if deps.get("cu12", []) %}
+              {% endfor %}
+          {% endif %}
+          {% if deps.get("cu12", []) %}
           - matrix:
               cuda: "12.*"
             packages:
-{% for dep in deps.get("cu12", []) %}
+              {% for dep in deps.get("cu12", []) %}
               - "{{ dep }}"
-{% endfor %}
-{% endif %}
+              {% endfor %}
+          {% endif %}
           - matrix:
             packages: []
-{% endfor %}
+  {% endfor %}

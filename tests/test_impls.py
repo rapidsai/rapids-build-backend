@@ -100,8 +100,8 @@ def test_edit_git_commit(initial_contents):
             ("12", "1"),
             "-cu12",
             "cuda-python>=12.1,<12.2.dev0",
-            "arch=ppc64",
-            "some-ppc-package",
+            "",
+            "some-x86-package",
         ),
         (
             ".",
@@ -110,7 +110,7 @@ def test_edit_git_commit(initial_contents):
             ("11", "5"),
             "-cu11",
             None,
-            "arch=aarch64",
+            "",
             None,
         ),
     ],
@@ -213,10 +213,6 @@ def test_edit_pyproject(
                                           arch: aarch64
                                         packages:
                                           - some-arm-package
-                                      - matrix:
-                                          arch: ppc64
-                                        packages:
-                                          - some-ppc-package
                               bad:
                                 common:
                                   - output_types: [pyproject, conda]
