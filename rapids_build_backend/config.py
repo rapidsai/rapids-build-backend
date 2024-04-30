@@ -1,6 +1,7 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 import os
+from collections.abc import Callable
 
 from .utils import _get_pyproject
 
@@ -18,7 +19,7 @@ class Config:
         "disable-cuda-suffix": (False, True),
         "matrix-entry": ("", True),
         "require-cuda": (True, True),
-        "requires": ([], False),
+        "requires": (lambda: [], False),
     }
 
     def __init__(self, dirname=".", config_settings=None):
@@ -33,6 +34,8 @@ class Config:
         config_name = name.replace("_", "-")
         if config_name in Config.config_options:
             default_value, allows_override = Config.config_options[config_name]
+            if isinstance(default_value, Callable):
+                default_value = default_value()
 
             # If overrides are allowed environment variables take precedence over the
             # config_settings dict.
