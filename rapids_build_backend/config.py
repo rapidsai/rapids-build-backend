@@ -1,7 +1,6 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 import os
-from collections.abc import Callable
 
 from .utils import _get_pyproject
 
@@ -34,7 +33,7 @@ class Config:
         config_name = name.replace("_", "-")
         if config_name in Config.config_options:
             default_value, allows_override = Config.config_options[config_name]
-            if isinstance(default_value, Callable):
+            if callable(default_value):
                 default_value = default_value()
 
             # If overrides are allowed environment variables take precedence over the
