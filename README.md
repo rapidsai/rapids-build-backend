@@ -4,11 +4,9 @@
 It currently support `scikit-build-core` and `setuptools` as the wrapped builder.
 The package's primary purpose is to automate the various bits of preprocessing that are typically done to RAPIDS package metadata prior to publishing packages.
 This includes the following notable changes:
+- Running [`rapids-dependency-file-generator`](https://github.com/rapidsai/dependency-file-generator) to get the dependencies for the CUDA version and architecture.
 - Modifying the package name to include CUDA suffixes.
 - Updating the git commit embedded in the importable package.
-- Modifying the package's (build, runtime, etc) dependencies to include CUDA suffixes.
-- Filtering out dependencies based on the CUDA version at build time.
-- Updating dependency specifiers to include an alpha specifier to allow pulling nightly dependencies in nightly builds.
 
 Since some of these modifications are only desirable in certain scenarios (wheel vs conda builds vs editable installs), all of these functions are customizable via the project's configuration in pyproject.toml.
 In cases where more dynamic customization is sensible, suitable environment variables and `config_settings` are supported during builds of distributions.
