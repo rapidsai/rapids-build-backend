@@ -16,7 +16,7 @@ import tomli_w
 from jinja2 import Environment, FileSystemLoader
 from packaging.version import parse as parse_version
 
-from rapids_build_backend.impls import _get_cuda_major
+from rapids_build_backend.impls import _get_cuda_version
 
 DIR = Path(__file__).parent.parent.resolve()
 
@@ -69,7 +69,7 @@ def patch_nvcc_if_needed(nvcc_version):
     try:
         # Only create a patch if one is required. In addition to reducing overhead, this
         # also ensures that we test the real nvcc and don't mask any relevant errors.
-        if _get_cuda_major() != nvcc_version:
+        if _get_cuda_version() is None or _get_cuda_version()[0] != nvcc_version:
             nvcc = _create_nvcc(nvcc_version)
             os.environ["PATH"] = os.pathsep.join(
                 [os.path.dirname(nvcc), os.environ["PATH"]]
@@ -235,9 +235,9 @@ def jinja_environment():
 _TEMPLATE_DEFAULTS = {
     "pyproject.toml": {
         "name": "pkg",
-        "dependencies": [],
+        "dependencies": {},
         "extras": {},
-        "build_requires": [],
+        "build_requires": {},
         "flags": {},
         "build_backend": "setuptools.build_meta",
     }

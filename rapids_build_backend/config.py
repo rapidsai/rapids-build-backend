@@ -12,12 +12,13 @@ class Config:
     # required) and whether it may be overridden by an environment variable or a config
     # setting.
     config_options = {
-        "allow-nightly-deps": (True, True),
         "build-backend": (None, False),
         "commit-file": ("", False),
+        "dependencies-file": ("dependencies.yaml", True),
         "disable-cuda-suffix": (False, True),
+        "matrix-entry": ("", True),
         "require-cuda": (True, True),
-        "requires": ([], False),
+        "requires": (lambda: [], False),
     }
 
     def __init__(self, dirname=".", config_settings=None):
@@ -32,6 +33,8 @@ class Config:
         config_name = name.replace("_", "-")
         if config_name in Config.config_options:
             default_value, allows_override = Config.config_options[config_name]
+            if callable(default_value):
+                default_value = default_value()
 
             # If overrides are allowed environment variables take precedence over the
             # config_settings dict.

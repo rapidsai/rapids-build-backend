@@ -56,9 +56,12 @@ def _generate_wheel(env, package_dir):
 def test_simple_setuptools(tmp_path, env, nvcc_version):
     template_args = {
         "name": "simple_setuptools",
-        "dependencies": ["rmm"],
-        "extras": {"test": ["dask-cuda==24.4.*"]},
-        "build_requires": ["rmm"],
+        "dependencies": {"cu11": ["rmm-cu11>=0.0.0a0"], "cu12": ["rmm-cu12>=0.0.0a0"]},
+        "extras": {"test": {"common": ["dask-cuda==24.4.*,>=0.0.0a0"]}},
+        "build_requires": {
+            "cu11": ["rmm-cu11>=0.0.0a0"],
+            "cu12": ["rmm-cu12>=0.0.0a0"],
+        },
         "build_backend": "setuptools.build_meta",
         "build_backend_package": "setuptools",
     }
@@ -66,6 +69,7 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
     package_dir = tmp_path / "pkg"
     os.makedirs(package_dir)
 
+    generate_from_template(package_dir, "dependencies.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
 
     with patch_nvcc_if_needed(nvcc_version):
@@ -81,9 +85,15 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
 def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     template_args = {
         "name": "simple_scikit_build_core",
-        "dependencies": ["cupy>=12.0.0"],
-        "extras": {"jit": ["ptxcompiler"]},
-        "build_requires": ["rmm==24.4.*"],
+        "dependencies": {
+            "cu11": ["cupy-cuda11x>=12.0.0"],
+            "cu12": ["cupy-cuda12x>=12.0.0"],
+        },
+        "extras": {"jit": {"cu11": ["ptxcompiler-cu11"]}},
+        "build_requires": {
+            "cu11": ["rmm-cu11==24.4.*,>=0.0.0a0"],
+            "cu12": ["rmm-cu12==24.4.*,>=0.0.0a0"],
+        },
         "build_backend": "scikit_build_core.build",
         "build_backend_package": "scikit-build-core",
     }
@@ -91,6 +101,7 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     package_dir = tmp_path / "pkg"
     os.makedirs(package_dir)
 
+    generate_from_template(package_dir, "dependencies.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
     generate_from_template(package_dir, "CMakeLists.txt")
 
@@ -103,4 +114,4 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     if nvcc_version == "11":
         assert extras == {"jit": {"ptxcompiler-cu11"}}
     else:
-        assert extras == {}
+        assert extras == {"jit": set()}

@@ -4,11 +4,9 @@
 It currently support `scikit-build-core` and `setuptools` as the wrapped builder.
 The package's primary purpose is to automate the various bits of preprocessing that are typically done to RAPIDS package metadata prior to publishing packages.
 This includes the following notable changes:
+- Running [`rapids-dependency-file-generator`](https://github.com/rapidsai/dependency-file-generator) to get the dependencies for the CUDA version and architecture.
 - Modifying the package name to include CUDA suffixes.
 - Updating the git commit embedded in the importable package.
-- Modifying the package's (build, runtime, etc) dependencies to include CUDA suffixes.
-- Filtering out dependencies based on the CUDA version at build time.
-- Updating dependency specifiers to include an alpha specifier to allow pulling nightly dependencies in nightly builds.
 
 Since some of these modifications are only desirable in certain scenarios (wheel vs conda builds vs editable installs), all of these functions are customizable via the project's configuration in pyproject.toml.
 In cases where more dynamic customization is sensible, suitable environment variables and `config_settings` are supported during builds of distributions.
@@ -17,14 +15,15 @@ In cases where more dynamic customization is sensible, suitable environment vari
 
 Any option without a default is required.
 
-| Option                | Definition                                                          | Type      | Default      | Supports dynamic modification |
-|-----------------------|---------------------------------------------------------------------|-----------|--------------|-------------------------------|
-| `allow-nightly-deps`  | If true, append alpha specifiers to dependencies                    | bool      | true         | Y                             |
-| `build-backend`       | The wrapped build backend (e.g. `setuptools.build_meta`)            | string    |              | N                             |
-| `commit-file`         | The file in which to write the git commit hash                      | string    | "" (No file) | N                             |
-| `disable-cuda-suffix` | If true, don't try to write CUDA suffixes                           | bool      | false        | Y                             |
-| `require-cuda`        | If false, builds will succeed even if nvcc is not available         | bool      | true         | Y                             |
-| `requires`            | List of build requirements (in addition to `build-system.requires`) | list[str] | []           | N                             |
+| Option                | Definition                                                          | Type           | Default             | Supports dynamic modification |
+|-----------------------|---------------------------------------------------------------------|----------------|---------------------|-------------------------------|
+| `build-backend`       | The wrapped build backend (e.g. `setuptools.build_meta`)            | string         |                     | N                             |
+| `commit-file`         | The file in which to write the git commit hash                      | string         | "" (No file)        | N                             |
+| `dependencies-file`   | The path to the `dependencies.yaml` file to use                     | string         | "dependencies.yaml" | Y                             |
+| `disable-cuda-suffix` | If true, don't try to write CUDA suffixes                           | bool           | false               | Y                             |
+| `matrix-entry`        | A `;`-separated list of `=`-delimited key/value pairs               | string         | ""                  | Y                             |
+| `require-cuda`        | If false, builds will succeed even if nvcc is not available         | bool           | true                | Y                             |
+| `requires`            | List of build requirements (in addition to `build-system.requires`) | list[str]      | []                  | N                             |
 
 
 ## Outstanding questions
