@@ -6,7 +6,16 @@ from typing import TYPE_CHECKING
 from .utils import _get_pyproject
 
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Callable
+
+    # config options can be one of these types...
+    config_val_type = str | bool | None
+
+    # ... or a callable that returns one of those or a list of strings
+    mutable_config_val_type = Callable[[], config_val_type | list[str]]
+    config_options_type = dict[
+        str, tuple[config_val_type | mutable_config_val_type, bool]
+    ]
 
 
 class Config:
@@ -15,7 +24,7 @@ class Config:
     # Mapping from config option to default value (None indicates that option is
     # required) and whether it may be overridden by an environment variable or a config
     # setting.
-    config_options: "dict[str, tuple[Any, bool]]" = {
+    config_options: "config_options_type" = {
         "build-backend": (None, False),
         "commit-file": ("", False),
         "dependencies-file": ("dependencies.yaml", True),
