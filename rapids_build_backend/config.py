@@ -11,11 +11,11 @@ if TYPE_CHECKING:
     # config options can be one of these types...
     config_val_type = str | bool | None
 
-    # ... or a callable that returns one of those or a list of strings
-    mutable_config_val_type = Callable[[], config_val_type | list[str]]
-    config_options_type = dict[
-        str, tuple[config_val_type | mutable_config_val_type, bool]
-    ]
+    # ... or a callable that returns one of those or some other mutable types
+    mutable_config_val_type = list[str]
+    config_val_callable = Callable[[], config_val_type | mutable_config_val_type]
+
+    config_options_type = dict[str, tuple[config_val_type | config_val_callable, bool]]
 
 
 class Config:
