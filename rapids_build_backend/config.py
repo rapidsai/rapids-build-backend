@@ -63,6 +63,6 @@ class Config:
                 if default_value is not None:
                     return default_value
 
-                raise AttributeError(f"Config is missing required attribute {name}")
+                raise AttributeError(f"Config is missing required attribute '{name}'")
         else:
-            raise AttributeError(f"Attempted to access unknown option {name}")
+            raise AttributeError(f"Attempted to access unknown option '{name}'")
