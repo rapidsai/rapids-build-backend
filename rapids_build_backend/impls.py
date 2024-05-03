@@ -7,6 +7,7 @@ import subprocess
 from contextlib import contextmanager
 from functools import lru_cache
 from importlib import import_module
+from typing import Union
 
 import rapids_dependency_file_generator
 import tomli_w
@@ -99,7 +100,7 @@ def _get_cuda_suffix(require_cuda=False) -> str:
 
 
 @lru_cache
-def _get_git_commit() -> str | None:
+def _get_git_commit() -> Union[str, None]:
     """Get the current git commit.
 
     Returns None if git is not in the PATH or if it fails to find the commit.
