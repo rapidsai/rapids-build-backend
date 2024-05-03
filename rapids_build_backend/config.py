@@ -1,7 +1,7 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from .utils import _get_pyproject
 
@@ -9,13 +9,15 @@ if TYPE_CHECKING:
     from typing import Callable
 
     # config options can be one of these types...
-    config_val_type = str | bool | None
+    config_val_type = Union[str, bool, None]
 
     # ... or a callable that returns one of those or some other mutable types
     mutable_config_val_type = list[str]
-    config_val_callable = Callable[[], config_val_type | mutable_config_val_type]
+    config_val_callable = Callable[[], Union[config_val_type, mutable_config_val_type]]
 
-    config_options_type = dict[str, tuple[config_val_type | config_val_callable, bool]]
+    config_options_type = dict[
+        str, tuple[Union[config_val_type, config_val_callable], bool]
+    ]
 
 
 class Config:
