@@ -30,7 +30,7 @@ jobs:
       matrix_filter: map(select(.ARCH == "amd64")) | group_by(.CUDA_VER|split(".")|map(tonumber)|.[0]) | map(min_by([(.PY_VER|split(".")|map(tonumber)), (.CUDA_VER|split(".")|map(tonumber))])) | [max_by(.PY_VER|split(".")|map(tonumber))]
   build-wheel:
     needs: check-style
-    uses: rapidsai/shared-workflows/.github/workflows/whels-build.yaml@branch-24.06
+    uses: rapidsai/shared-workflows/.github/workflows/wheels-build.yaml@branch-24.06
     with:
       build_type: branch
       script: "ci/build_wheel.sh"
