@@ -1,12 +1,12 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 import os
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from .utils import _get_pyproject
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from typing import Callable, Union
 
     # config options can be one of these types...
     config_val_type = Union[str, bool, None]
