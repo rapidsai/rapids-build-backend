@@ -12,7 +12,7 @@ jobs:
   check-style:
     runs-on: ubuntu-latest
     container:
-      image: rapidsai/ci-conda:cuda12.2.2-ubuntu22.04-py3.9
+      image: rapidsai/ci-conda:latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
