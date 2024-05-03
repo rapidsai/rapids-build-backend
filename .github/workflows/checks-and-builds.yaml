@@ -42,7 +42,7 @@ jobs:
     needs: check-style
     runs-on: ubuntu-latest
     container:
-      image: rapidsai/ci-wheel:cuda12.2.2-ubuntu22.04-py3.9
+      image: rapidsai/ci-wheel:cuda12.2.2-ubuntu20.04-py3.9
     env:
       PUBLISH: "${{ inputs.publish }}"
       RAPIDS_CONDA_TOKEN: ${{ secrets.CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN }}
