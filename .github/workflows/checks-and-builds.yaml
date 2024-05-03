@@ -20,34 +20,19 @@ jobs:
           fetch-depth: 0
       - name: Check style
         run: "./ci/check_style.sh"
-  conda-build:
+  build-conda:
     needs: check-style
-    runs-on: ubuntu-latest
-    container:
-      image: rapidsai/ci-conda:cuda12.2.2-ubuntu22.04-py3.9
-    env:
-      PUBLISH: "${{ inputs.publish }}"
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set Proper Conda Upload Token
-        run: |
-          RAPIDS_CONDA_TOKEN=${{ secrets.CONDA_RAPIDSAI_NIGHTLY_TOKEN }}
-          if rapids-is-release-build; then
-            RAPIDS_CONDA_TOKEN=${{ secrets.CONDA_RAPIDSAI_TOKEN }}
-          fi
-          echo "RAPIDS_CONDA_TOKEN=${RAPIDS_CONDA_TOKEN}" >> "${GITHUB_ENV}"
-      - name: Python build
-        run: "./ci/build_python.sh ${PUBLISH}"
-  wheel-build:
+    uses: rapidsai/shared-workflows/.github/workflows/conda-python-build.yaml@branch-24.06
+    with:
+      build_type: branch
+      script: "ci/build_python.sh"
+      # Select only the build with the minimum Python version and the maximum CUDA version
+      matrix_filter: map(select(.ARCH == "amd64")) | group_by(.CUDA_VER|split(".")|map(tonumber)|.[0]) | map(min_by([(.PY_VER|split(".")|map(tonumber)), (.CUDA_VER|split(".")|map(tonumber))])) | [max_by(.PY_VER|split(".")|map(tonumber))]
+  build-wheel:
     needs: check-style
-    runs-on: ubuntu-latest
-    container:
-      image: rapidsai/ci-wheel:cuda12.2.2-ubuntu20.04-py3.9
-    env:
-      PUBLISH: "${{ inputs.publish }}"
-      RAPIDS_CONDA_TOKEN: ${{ secrets.CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN }}
-    steps:
-      - name: checkout code repo
-        uses: actions/checkout@v4
-      - name: Build and repair the wheel
-        run: "./ci/build_wheel.sh ${PUBLISH}"
+    uses: rapidsai/shared-workflows/.github/workflows/whels-build.yaml@branch-24.06
+    with:
+      build_type: branch
+      script: "ci/build_wheel.sh"
+      # Select only the build with the minimum Python version and the maximum CUDA version
+      matrix_filter: map(select(.ARCH == "amd64")) | group_by(.CUDA_VER|split(".")|map(tonumber)|.[0]) | map(min_by([(.PY_VER|split(".")|map(tonumber)), (.CUDA_VER|split(".")|map(tonumber))])) | [max_by(.PY_VER|split(".")|map(tonumber))]
