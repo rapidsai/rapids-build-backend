@@ -1,8 +1,21 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 import os
+from typing import TYPE_CHECKING
 
 from .utils import _get_pyproject
+
+if TYPE_CHECKING:
+    from typing import Callable
+
+    # config options can be one of these types...
+    config_val_type = str | bool | None
+
+    # ... or a callable that returns one of those or some other mutable types
+    mutable_config_val_type = list[str]
+    config_val_callable = Callable[[], config_val_type | mutable_config_val_type]
+
+    config_options_type = dict[str, tuple[config_val_type | config_val_callable, bool]]
 
 
 class Config:
@@ -11,7 +24,7 @@ class Config:
     # Mapping from config option to default value (None indicates that option is
     # required) and whether it may be overridden by an environment variable or a config
     # setting.
-    config_options = {
+    config_options: "config_options_type" = {
         "build-backend": (None, False),
         "commit-file": ("", False),
         "dependencies-file": ("dependencies.yaml", True),
@@ -63,6 +76,6 @@ class Config:
                 if default_value is not None:
                     return default_value
 
-                raise AttributeError(f"Config is missing required attribute {name}")
+                raise AttributeError(f"Config is missing required attribute '{name}'")
         else:
-            raise AttributeError(f"Attempted to access unknown option {name}")
+            raise AttributeError(f"Attempted to access unknown option '{name}'")
