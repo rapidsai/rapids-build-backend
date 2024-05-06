@@ -36,3 +36,15 @@ jobs:
       script: "ci/build_wheel.sh"
       # Select only the build with the minimum Python version and the maximum CUDA version
       matrix_filter: '[map(select(.ARCH == "amd64")) | min_by((.PY_VER | split(".") | map(tonumber)), (.CUDA_VER | split(".") | map(-tonumber)))]'
+  publish-wheels:
+    needs:
+      - build-wheels
+    secrets: inherit
+    uses: rapidsai/shared-workflows/.github/workflows/wheels-publish.yaml@branch-24.06
+    with:
+      package-name: rapids-build-backend
+  publish-conda:
+    needs:
+      - build-conda
+    secrets: inherit
+    uses: rapidsai/shared-workflows/.github/workflows/conda-upload-packages.yaml@branch-24.06
