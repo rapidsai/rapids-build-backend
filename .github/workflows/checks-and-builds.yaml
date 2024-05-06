@@ -42,9 +42,12 @@ jobs:
     secrets: inherit
     uses: rapidsai/shared-workflows/.github/workflows/wheels-publish.yaml@branch-24.06
     with:
+      build_type: branch
       package-name: rapids-build-backend
   publish-conda:
     needs:
       - build-conda
     secrets: inherit
     uses: rapidsai/shared-workflows/.github/workflows/conda-upload-packages.yaml@branch-24.06
+    with:
+      build_type: branch
