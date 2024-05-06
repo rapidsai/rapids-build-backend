@@ -3,6 +3,8 @@ name: checks
 on:
   workflow_call:
     inputs:
+      publish:
+        type: boolean
 
 jobs:
   check-style:
