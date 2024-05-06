@@ -38,7 +38,7 @@ jobs:
       matrix_filter: '[map(select(.ARCH == "amd64")) | min_by((.PY_VER | split(".") | map(tonumber)), (.CUDA_VER | split(".") | map(-tonumber)))]'
   publish-wheels:
     needs:
-      - build-wheels
+      - build-wheel
     secrets: inherit
     uses: rapidsai/shared-workflows/.github/workflows/wheels-publish.yaml@branch-24.06
     with:
