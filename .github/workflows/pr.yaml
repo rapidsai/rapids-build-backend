@@ -13,5 +13,5 @@ jobs:
   run-checks:
     uses: ./.github/workflows/checks-and-builds.yaml
     with:
-      publish: false
+      build_type: pull-request
     secrets: inherit
