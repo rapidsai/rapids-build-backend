@@ -39,7 +39,7 @@ def _get_backend(build_backend):
 
 
 @lru_cache
-def _get_cuda_version(require_cuda=False):
+def _get_cuda_version(require_cuda: bool):
     """Get the CUDA suffix based on nvcc.
 
     Parameters
@@ -79,7 +79,7 @@ def _get_cuda_version(require_cuda=False):
 
 
 @lru_cache
-def _get_cuda_suffix(require_cuda=False) -> str:
+def _get_cuda_suffix(require_cuda: bool) -> str:
     """Get the CUDA suffix based on nvcc.
 
     Parameters
