@@ -5,6 +5,8 @@ on:
     inputs:
       build_type:
         type: string
+      publish:
+        type: boolean
 
 jobs:
   check-style:
@@ -42,6 +44,7 @@ jobs:
     with:
       build_type: ${{ inputs.build_type }}
       package-name: rapids-build-backend
+    if: ${{ inputs.publish }}
   publish-conda:
     needs:
       - build-conda
@@ -49,3 +52,4 @@ jobs:
     uses: rapidsai/shared-workflows/.github/workflows/conda-upload-packages.yaml@branch-24.06
     with:
       build_type: ${{ inputs.build_type }}
+    if: ${{ inputs.publish }}
