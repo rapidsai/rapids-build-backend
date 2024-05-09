@@ -9,9 +9,9 @@ from unittest.mock import Mock, patch
 import pytest
 
 from rapids_build_backend.impls import (
-    _edit_git_commit,
     _edit_pyproject,
     _get_cuda_suffix,
+    _write_git_commit,
 )
 
 
@@ -26,39 +26,46 @@ def set_cwd(cwd):
 
 
 @pytest.mark.parametrize(
-    "initial_contents",
+    ("project_name", "directory", "commit_file_config", "expected_commit_file"),
     [
-        "def456\n",
-        "",
-        None,
+        ("test-project", "test_project", "", "test_project/GIT_COMMIT"),
+        (
+            "test-project",
+            "_test_project",
+            "_test_project/GIT_COMMIT",
+            "_test_project/GIT_COMMIT",
+        ),
+        ("test-project", None, None, None),
     ],
 )
 @patch("rapids_build_backend.impls._get_git_commit", Mock(return_value="abc123"))
-def test_edit_git_commit(initial_contents):
-    def check_initial_contents(filename):
-        if initial_contents is not None:
-            with open(filename) as f:
-                assert f.read() == initial_contents
-        else:
-            assert not os.path.exists(filename)
-
-    with tempfile.TemporaryDirectory() as d:
-        commit_file = os.path.join(d, "commit-file")
-        bkp_commit_file = os.path.join(d, ".commit-file.rapids-build-backend.bak")
-        if initial_contents is not None:
-            with open(commit_file, "w") as f:
-                f.write(initial_contents)
+def test_write_git_commit(
+    tmp_path, project_name, directory, commit_file_config, expected_commit_file
+):
+    with set_cwd(tmp_path):
+        if directory:
+            os.mkdir(directory)
 
         config = Mock(
-            commit_file=commit_file,
+            commit_file=commit_file_config,
         )
-        with _edit_git_commit(config):
-            with open(commit_file) as f:
-                assert f.read() == "abc123\n"
-            check_initial_contents(bkp_commit_file)
+        with _write_git_commit(config, project_name):
+            if expected_commit_file:
+                with open(expected_commit_file) as f:
+                    assert f.read() == "abc123\n"
+            else:
+                assert list(os.walk(".")) == [
+                    (".", [], []),
+                ]
 
-        assert not os.path.exists(bkp_commit_file)
-        check_initial_contents(commit_file)
+        if directory:
+            assert list(os.walk(directory)) == [
+                (directory, [], []),
+            ]
+            os.rmdir(directory)
+        assert list(os.walk(".")) == [
+            (".", [], []),
+        ]
 
 
 @pytest.mark.parametrize(

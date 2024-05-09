@@ -118,7 +118,7 @@ def _get_git_commit() -> Union[str, None]:
 
 
 @contextmanager
-def _edit_git_commit(config):
+def _write_git_commit(config, project_name):
     """
     Temporarily modify the git commit of the package being built.
 
@@ -126,29 +126,17 @@ def _edit_git_commit(config):
     at build time.
     """
     commit_file = config.commit_file
+    if commit_file == "":
+        commit_file = os.path.join(project_name.replace("-", "_"), "GIT_COMMIT")
     commit = _get_git_commit()
 
-    if commit_file != "" and commit is not None:
-        bkp_commit_file = os.path.join(
-            os.path.dirname(commit_file),
-            f".{os.path.basename(commit_file)}.rapids-build-backend.bak",
-        )
+    if commit_file is not None and commit is not None:
+        with open(commit_file, "w") as f:
+            f.write(f"{commit}\n")
         try:
-            try:
-                shutil.move(commit_file, bkp_commit_file)
-            except FileNotFoundError:
-                bkp_commit_file = None
-
-            with open(commit_file, "w") as f:
-                f.write(f"{commit}\n")
-
             yield
         finally:
-            # Restore by moving rather than writing to avoid any formatting changes.
-            if bkp_commit_file:
-                shutil.move(bkp_commit_file, commit_file)
-            else:
-                os.unlink(commit_file)
+            os.unlink(commit_file)
     else:
         yield
 
@@ -227,7 +215,9 @@ def _edit_pyproject(config):
 # (the actual build backend, which conditionally imports these functions).
 def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    pyproject = utils._get_pyproject()
+    project_name = pyproject["project"]["name"]
+    with _edit_pyproject(config), _write_git_commit(config, project_name):
         # Reload the config for a possibly updated tool.rapids-build-backend.requires
         reloaded_config = Config(config_settings=config_settings)
         requires = list(reloaded_config.requires)
@@ -243,7 +233,9 @@ def get_requires_for_build_wheel(config_settings):
 
 def get_requires_for_build_sdist(config_settings):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    pyproject = utils._get_pyproject()
+    project_name = pyproject["project"]["name"]
+    with _edit_pyproject(config), _write_git_commit(config, project_name):
         # Reload the config for a possibly updated tool.rapids-build-backend.requires
         reloaded_config = Config(config_settings=config_settings)
         requires = list(reloaded_config.requires)
@@ -275,7 +267,9 @@ def get_requires_for_build_editable(config_settings):
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    pyproject = utils._get_pyproject()
+    project_name = pyproject["project"]["name"]
+    with _edit_pyproject(config), _write_git_commit(config, project_name):
         return _get_backend(config.build_backend).build_wheel(
             wheel_directory, config_settings, metadata_directory
         )
@@ -283,7 +277,9 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
 def build_sdist(sdist_directory, config_settings=None):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    pyproject = utils._get_pyproject()
+    project_name = pyproject["project"]["name"]
+    with _edit_pyproject(config), _write_git_commit(config, project_name):
         return _get_backend(config.build_backend).build_sdist(
             sdist_directory, config_settings
         )
