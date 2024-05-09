@@ -10,4 +10,4 @@ WHL_FILE=$(ls dist/*.whl)
 python -m pip install "${WHL_FILE}[test]"
 python -m pytest -v tests/
 
-rapids-upload-wheels-to-s3 dist
+RAPIDS_PY_WHEEL_NAME="rapids-build-backend" rapids-upload-wheels-to-s3 dist
