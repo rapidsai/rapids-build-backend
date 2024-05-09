@@ -118,7 +118,7 @@ def _get_git_commit() -> Union[str, None]:
 
 
 @contextmanager
-def _write_git_commit(config, project_name):
+def _write_git_commit(config, project_name: str):
     """
     Temporarily modify the git commit of the package being built.
 
