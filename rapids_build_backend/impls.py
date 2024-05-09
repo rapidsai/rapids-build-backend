@@ -130,7 +130,7 @@ def _write_git_commit(config, project_name: str):
         commit_file = os.path.join(project_name.replace("-", "_"), "GIT_COMMIT")
     commit = _get_git_commit()
 
-    if commit_file is not None and commit is not None:
+    if commit is not None:
         with open(commit_file, "w") as f:
             f.write(f"{commit}\n")
         try:

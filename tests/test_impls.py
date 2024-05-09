@@ -35,7 +35,6 @@ def set_cwd(cwd):
             "_test_project/GIT_COMMIT",
             "_test_project/GIT_COMMIT",
         ),
-        ("test-project", None, None, None),
     ],
 )
 @patch("rapids_build_backend.impls._get_git_commit", Mock(return_value="abc123"))
@@ -50,19 +49,10 @@ def test_write_git_commit(
             commit_file=commit_file_config,
         )
         with _write_git_commit(config, project_name):
-            if expected_commit_file:
-                with open(expected_commit_file) as f:
-                    assert f.read() == "abc123\n"
-            else:
-                assert list(os.walk(".")) == [
-                    (".", [], []),
-                ]
+            with open(expected_commit_file) as f:
+                assert f.read() == "abc123\n"
 
-        if directory:
-            assert list(os.walk(directory)) == [
-                (directory, [], []),
-            ]
-            os.rmdir(directory)
+        os.rmdir(directory)
         assert list(os.walk(".")) == [
             (".", [], []),
         ]
