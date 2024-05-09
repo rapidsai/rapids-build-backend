@@ -27,9 +27,6 @@ def setup_config_project(tmp_path, flag, config_value):
     [
         ("commit-file", '"pkg/_version.py"', "pkg/_version.py"),
         ("commit-file", None, ""),
-        ("disable-cuda-suffix", "true", True),
-        ("disable-cuda-suffix", "false", False),
-        ("disable-cuda-suffix", None, False),
         ("require-cuda", "true", True),
         ("require-cuda", "false", False),
         ("require-cuda", None, True),
@@ -43,8 +40,6 @@ def test_config(tmp_path, flag, config_value, expected):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
-        ("disable-cuda-suffix", "true", True),
-        ("disable-cuda-suffix", "false", False),
         ("require-cuda", "true", True),
         ("require-cuda", "false", False),
     ],
@@ -68,8 +63,6 @@ def test_config_env_var(tmp_path, flag, config_value, expected):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
-        ("disable-cuda-suffix", "true", True),
-        ("disable-cuda-suffix", "false", False),
         ("require-cuda", "true", True),
         ("require-cuda", "false", False),
     ],
