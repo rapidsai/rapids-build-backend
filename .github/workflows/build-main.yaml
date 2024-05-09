@@ -1,0 +1,18 @@
+name: build
+
+on:
+  push:
+    branches:
+      - "main"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  run-checks:
+    uses: ./.github/workflows/checks-and-builds.yaml
+    with:
+      build_type: branch
+      publish: false
+    secrets: inherit
