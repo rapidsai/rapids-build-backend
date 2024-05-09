@@ -30,10 +30,6 @@ Any option without a default is required.
 
 - How should we split up build requirements between `build-system` and `tool.rapids-build-backend`? In theory any dependency that doesn't need suffixing could also go into `build-system.requires`. I think it's easier to teach that all dependencies other than `rapids-build-backend` itself should to into `tool.rapids-build-backend`, but I don't know how others feel.
 
-## Future improvements
-
-- When https://github.com/rapidsai/dependency-file-generator/pull/48 is completed we can make dfg a dependency of this builder and use it to rewrite the dependency list instead of the manual logic here.
-
 ## Rejected ideas
 
 - We could also include the rewrite of VERSION that we use for RAPIDS builds, but this is really more specific to our release process than the general process of building our wheels. I don't think someone building a wheel locally should see the same version as what we produce via CI. If we really wanted we could pull dunamai as a dependency and write a different version here, though.
