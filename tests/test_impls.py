@@ -11,7 +11,7 @@ import pytest
 from rapids_build_backend.impls import (
     _edit_pyproject,
     _get_cuda_suffix,
-    _write_git_commit,
+    _write_git_commits,
 )
 
 
@@ -26,36 +26,50 @@ def set_cwd(cwd):
 
 
 @pytest.mark.parametrize(
-    ("project_name", "directory", "commit_file_config", "expected_commit_file"),
+    ("project_name", "directories", "commit_files_config", "expected_commit_files"),
     [
-        ("test-project", "test_project", "", "test_project/GIT_COMMIT"),
+        ("test-project", ["test_project"], None, ["test_project/GIT_COMMIT"]),
         (
             "test-project",
-            "_test_project",
-            "_test_project/GIT_COMMIT",
-            "_test_project/GIT_COMMIT",
+            ["_test_project"],
+            ["_test_project/GIT_COMMIT"],
+            ["_test_project/GIT_COMMIT"],
+        ),
+        (
+            "test-project",
+            ["_test_project_1", "_test_project_2"],
+            ["_test_project_1/GIT_COMMIT", "_test_project_2/GIT_COMMIT"],
+            ["_test_project_1/GIT_COMMIT", "_test_project_2/GIT_COMMIT"],
+        ),
+        (
+            "test-project",
+            [],
+            [],
+            [],
         ),
     ],
 )
 @patch("rapids_build_backend.impls._get_git_commit", Mock(return_value="abc123"))
-def test_write_git_commit(
-    tmp_path, project_name, directory, commit_file_config, expected_commit_file
+def test_write_git_commits(
+    tmp_path, project_name, directories, commit_files_config, expected_commit_files
 ):
     with set_cwd(tmp_path):
-        if directory:
+        for directory in directories:
             os.mkdir(directory)
 
         config = Mock(
-            commit_file=commit_file_config,
+            commit_files=commit_files_config,
         )
-        with _write_git_commit(config, project_name):
-            with open(expected_commit_file) as f:
-                assert f.read() == "abc123\n"
+        with _write_git_commits(config, project_name):
+            for expected_commit_file in expected_commit_files:
+                with open(expected_commit_file) as f:
+                    assert f.read() == "abc123\n"
+            if not directories:
+                assert list(os.walk(".")) == [(".", [], [])]
 
-        os.rmdir(directory)
-        assert list(os.walk(".")) == [
-            (".", [], []),
-        ]
+        for directory in directories:
+            os.rmdir(directory)
+        assert list(os.walk(".")) == [(".", [], [])]
 
 
 @pytest.mark.parametrize(

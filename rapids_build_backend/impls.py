@@ -118,26 +118,28 @@ def _get_git_commit() -> Union[str, None]:
 
 
 @contextmanager
-def _write_git_commit(config, project_name: str):
+def _write_git_commits(config, project_name: str):
     """
-    Temporarily write the git commit file for the package being built. If the
-    `commit-file` config option is not specified, write to `<project_name>/GIT_COMMIT`.
+    Temporarily write the git commit files for the package being built. If the
+    `commit-files` config option is not specified, write to `<project_name>/GIT_COMMIT`.
 
     This is useful for projects that want to embed the current git commit in the package
     at build time.
     """
-    commit_file = config.commit_file
-    if commit_file == "":
-        commit_file = os.path.join(project_name.replace("-", "_"), "GIT_COMMIT")
-    commit = _get_git_commit()
+    commit_files = config.commit_files
+    if commit_files is None:
+        commit_files = [os.path.join(project_name.replace("-", "_"), "GIT_COMMIT")]
+    commit = _get_git_commit() if commit_files else None
 
     if commit is not None:
-        with open(commit_file, "w") as f:
-            f.write(f"{commit}\n")
+        for commit_file in commit_files:
+            with open(commit_file, "w") as f:
+                f.write(f"{commit}\n")
         try:
             yield
         finally:
-            os.unlink(commit_file)
+            for commit_file in commit_files:
+                os.unlink(commit_file)
     else:
         yield
 
@@ -218,7 +220,7 @@ def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
     pyproject = utils._get_pyproject()
     project_name = pyproject["project"]["name"]
-    with _edit_pyproject(config), _write_git_commit(config, project_name):
+    with _edit_pyproject(config), _write_git_commits(config, project_name):
         # Reload the config for a possibly updated tool.rapids-build-backend.requires
         reloaded_config = Config(config_settings=config_settings)
         requires = list(reloaded_config.requires)
@@ -236,7 +238,7 @@ def get_requires_for_build_sdist(config_settings):
     config = Config(config_settings=config_settings)
     pyproject = utils._get_pyproject()
     project_name = pyproject["project"]["name"]
-    with _edit_pyproject(config), _write_git_commit(config, project_name):
+    with _edit_pyproject(config), _write_git_commits(config, project_name):
         # Reload the config for a possibly updated tool.rapids-build-backend.requires
         reloaded_config = Config(config_settings=config_settings)
         requires = list(reloaded_config.requires)
@@ -270,7 +272,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
     pyproject = utils._get_pyproject()
     project_name = pyproject["project"]["name"]
-    with _edit_pyproject(config), _write_git_commit(config, project_name):
+    with _edit_pyproject(config), _write_git_commits(config, project_name):
         return _get_backend(config.build_backend).build_wheel(
             wheel_directory, config_settings, metadata_directory
         )
@@ -280,7 +282,7 @@ def build_sdist(sdist_directory, config_settings=None):
     config = Config(config_settings=config_settings)
     pyproject = utils._get_pyproject()
     project_name = pyproject["project"]["name"]
-    with _edit_pyproject(config), _write_git_commit(config, project_name):
+    with _edit_pyproject(config), _write_git_commits(config, project_name):
         return _get_backend(config.build_backend).build_sdist(
             sdist_directory, config_settings
         )
