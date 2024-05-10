@@ -120,7 +120,8 @@ def _get_git_commit() -> Union[str, None]:
 @contextmanager
 def _write_git_commit(config, project_name: str):
     """
-    Temporarily modify the git commit of the package being built.
+    Temporarily write the git commit file for the package being built. If the
+    `commit-file` config option is not specified, write to `<project_name>/GIT_COMMIT`.
 
     This is useful for projects that want to embed the current git commit in the package
     at build time.
