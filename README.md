@@ -15,14 +15,14 @@ In cases where more dynamic customization is sensible, suitable environment vari
 
 Any option without a default is required.
 
-| Option                | Definition                                                          | Type           | Default             | Supports dynamic modification |
-|-----------------------|---------------------------------------------------------------------|----------------|---------------------|-------------------------------|
-| `build-backend`       | The wrapped build backend (e.g. `setuptools.build_meta`)            | string         |                     | N                             |
-| `commit-file`         | The file in which to write the git commit hash                      | string         | "" (No file)        | N                             |
-| `dependencies-file`   | The path to the `dependencies.yaml` file to use                     | string         | "dependencies.yaml" | Y                             |
-| `matrix-entry`        | A `;`-separated list of `=`-delimited key/value pairs               | string         | ""                  | Y                             |
-| `require-cuda`        | If false, builds will succeed even if nvcc is not available         | bool           | true                | Y                             |
-| `requires`            | List of build requirements (in addition to `build-system.requires`) | list[str]      | []                  | N                             |
+| Option                | Definition                                                          | Type           | Default                | Supports dynamic modification |
+|-----------------------|---------------------------------------------------------------------|----------------|------------------------|-------------------------------|
+| `build-backend`       | The wrapped build backend (e.g. `setuptools.build_meta`)            | string         |                        | N                             |
+| `commit-file`         | The file in which to write the git commit hash                      | string         | "" (No file)           | N                             |
+| `dependencies-file`   | The path to the `dependencies.yaml` file to use                     | string         | "../dependencies.yaml" | Y                             |
+| `matrix-entry`        | A `;`-separated list of `=`-delimited key/value pairs               | string         | ""                     | Y                             |
+| `require-cuda`        | If false, builds will succeed even if nvcc is not available         | bool           | true                   | Y                             |
+| `requires`            | List of build requirements (in addition to `build-system.requires`) | list[str]      | []                     | N                             |
 
 
 ## Outstanding questions

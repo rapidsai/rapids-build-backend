@@ -29,7 +29,7 @@ class Config:
     config_options: "config_options_type" = {
         "build-backend": (None, False),
         "commit-file": ("", False),
-        "dependencies-file": ("dependencies.yaml", True),
+        "dependencies-file": ("../dependencies.yaml", True),
         "matrix-entry": ("", True),
         "require-cuda": (True, True),
         "requires": (lambda: [], False),
