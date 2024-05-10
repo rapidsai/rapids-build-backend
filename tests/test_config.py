@@ -29,7 +29,7 @@ def setup_config_project(tmp_path, flag, config_value):
         ("commit-file", None, ""),
         ("disable-cuda", "true", True),
         ("disable-cuda", "false", False),
-        ("disable-cuda", None, True),
+        ("disable-cuda", None, False),
     ],
 )
 def test_config(tmp_path, flag, config_value, expected):
