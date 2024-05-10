@@ -20,8 +20,8 @@ Any option without a default is required.
 | `build-backend`       | The wrapped build backend (e.g. `setuptools.build_meta`)            | string         |                     | N                             |
 | `commit-file`         | The file in which to write the git commit hash                      | string         | "" (No file)        | N                             |
 | `dependencies-file`   | The path to the `dependencies.yaml` file to use                     | string         | "dependencies.yaml" | Y                             |
+| `disable-cuda`        | If true, CUDA version is not used in package name or dependencies   | bool           | false               | Y                             |
 | `matrix-entry`        | A `;`-separated list of `=`-delimited key/value pairs               | string         | ""                  | Y                             |
-| `require-cuda`        | If false, builds will succeed even if nvcc is not available         | bool           | true                | Y                             |
 | `requires`            | List of build requirements (in addition to `build-system.requires`) | list[str]      | []                  | N                             |
 
 
