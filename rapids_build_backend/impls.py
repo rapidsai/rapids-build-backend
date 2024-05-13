@@ -168,6 +168,8 @@ def _edit_pyproject(config):
 
     cuda_version = _get_cuda_version(config.require_cuda)
 
+    # "dependencies.yaml" might not exist in sdists and wouldn't need to... so don't
+    # raise an exception if that file can't be found when this runs
     try:
         parsed_config = rapids_dependency_file_generator.load_config_from_file(
             config.dependencies_file
