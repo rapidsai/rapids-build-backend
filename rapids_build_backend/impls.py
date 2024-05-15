@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import warnings
 from contextlib import contextmanager
 from functools import lru_cache
 from importlib import import_module
@@ -141,11 +142,19 @@ def _edit_pyproject(config):
     if not config.disable_cuda:
         cuda_version_major, cuda_version_minor = _get_cuda_version()
 
+    # "dependencies.yaml" might not exist in sdists and wouldn't need to... so don't
+    # raise an exception if that file can't be found when this runs
     try:
         parsed_config = rapids_dependency_file_generator.load_config_from_file(
             config.dependencies_file
         )
     except FileNotFoundError:
+        msg = (
+            f"File not found: '{config.dependencies_file}'. If you want "
+            "rapids-build-backend to consider dependencies from a dependencies file, ",
+            "supply an existing file via config setting 'dependencies-file'.",
+        )
+        warnings.warn(msg, stacklevel=2)
         parsed_config = None
 
     try:
