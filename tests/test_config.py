@@ -25,8 +25,9 @@ def setup_config_project(tmp_path, flag, config_value):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
-        ("commit-file", '"pkg/_version.py"', "pkg/_version.py"),
-        ("commit-file", None, ""),
+        ("commit-files", '["pkg/_version.py"]', ["pkg/_version.py"]),
+        ("commit-files", "[]", []),
+        ("commit-files", None, None),
         ("disable-cuda", "true", True),
         ("disable-cuda", "false", False),
         ("disable-cuda", None, False),

@@ -16,23 +16,23 @@ if TYPE_CHECKING:
     config_val_callable = Callable[[], Union[config_val_type, mutable_config_val_type]]
 
     config_options_type = dict[
-        str, tuple[Union[config_val_type, config_val_callable], bool]
+        str, tuple[Union[config_val_type, config_val_callable], bool, bool]
     ]
 
 
 class Config:
     """Manage the build configuration for the project."""
 
-    # Mapping from config option to default value (None indicates that option is
-    # required) and whether it may be overridden by an environment variable or a config
+    # Mapping from config option to default value, whether it's required, and
+    # whether it may be overridden by an environment variable or a config
     # setting.
     config_options: "config_options_type" = {
-        "build-backend": (None, False),
-        "commit-file": ("", False),
-        "dependencies-file": ("dependencies.yaml", True),
-        "disable-cuda": (False, True),
-        "matrix-entry": ("", True),
-        "requires": (lambda: [], False),
+        "build-backend": (None, True, False),
+        "commit-files": (None, False, False),
+        "dependencies-file": ("dependencies.yaml", False, True),
+        "disable-cuda": (False, False, True),
+        "matrix-entry": ("", False, True),
+        "requires": (lambda: [], False, False),
     }
 
     def __init__(self, dirname=".", config_settings=None):
@@ -46,7 +46,9 @@ class Config:
     def __getattr__(self, name):
         config_name = name.replace("_", "-")
         if config_name in Config.config_options:
-            default_value, allows_override = Config.config_options[config_name]
+            default_value, required, allows_override = Config.config_options[
+                config_name
+            ]
             if callable(default_value):
                 default_value = default_value()
 
@@ -74,7 +76,7 @@ class Config:
             try:
                 return self.config[config_name]
             except KeyError:
-                if default_value is not None:
+                if not required:
                     return default_value
 
                 raise AttributeError(f"Config is missing required attribute '{name}'")

@@ -1,7 +1,6 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 import os.path
-import tempfile
 from contextlib import contextmanager
 from textwrap import dedent
 from unittest.mock import Mock, patch
@@ -9,9 +8,9 @@ from unittest.mock import Mock, patch
 import pytest
 
 from rapids_build_backend.impls import (
-    _edit_git_commit,
     _edit_pyproject,
     _get_cuda_suffix,
+    _write_git_commits,
 )
 
 
@@ -26,39 +25,50 @@ def set_cwd(cwd):
 
 
 @pytest.mark.parametrize(
-    "initial_contents",
+    ("project_name", "directories", "commit_files_config", "expected_commit_files"),
     [
-        "def456\n",
-        "",
-        None,
+        ("test-project", ["test_project"], None, ["test_project/GIT_COMMIT"]),
+        (
+            "test-project",
+            ["_test_project"],
+            ["_test_project/GIT_COMMIT"],
+            ["_test_project/GIT_COMMIT"],
+        ),
+        (
+            "test-project",
+            ["_test_project_1", "_test_project_2"],
+            ["_test_project_1/GIT_COMMIT", "_test_project_2/GIT_COMMIT"],
+            ["_test_project_1/GIT_COMMIT", "_test_project_2/GIT_COMMIT"],
+        ),
+        (
+            "test-project",
+            [],
+            [],
+            [],
+        ),
     ],
 )
 @patch("rapids_build_backend.impls._get_git_commit", Mock(return_value="abc123"))
-def test_edit_git_commit(initial_contents):
-    def check_initial_contents(filename):
-        if initial_contents is not None:
-            with open(filename) as f:
-                assert f.read() == initial_contents
-        else:
-            assert not os.path.exists(filename)
-
-    with tempfile.TemporaryDirectory() as d:
-        commit_file = os.path.join(d, "commit-file")
-        bkp_commit_file = os.path.join(d, ".commit-file.rapids-build-backend.bak")
-        if initial_contents is not None:
-            with open(commit_file, "w") as f:
-                f.write(initial_contents)
+def test_write_git_commits(
+    tmp_path, project_name, directories, commit_files_config, expected_commit_files
+):
+    with set_cwd(tmp_path):
+        for directory in directories:
+            os.mkdir(directory)
 
         config = Mock(
-            commit_file=commit_file,
+            commit_files=commit_files_config,
         )
-        with _edit_git_commit(config):
-            with open(commit_file) as f:
-                assert f.read() == "abc123\n"
-            check_initial_contents(bkp_commit_file)
+        with _write_git_commits(config, project_name):
+            for expected_commit_file in expected_commit_files:
+                with open(expected_commit_file) as f:
+                    assert f.read() == "abc123\n"
+            if not directories:
+                assert list(os.walk(".")) == [(".", [], [])]
 
-        assert not os.path.exists(bkp_commit_file)
-        check_initial_contents(commit_file)
+        for directory in directories:
+            os.rmdir(directory)
+        assert list(os.walk(".")) == [(".", [], [])]
 
 
 @pytest.mark.parametrize(
