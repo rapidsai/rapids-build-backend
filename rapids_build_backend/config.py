@@ -30,8 +30,8 @@ class Config:
         "build-backend": (None, False),
         "commit-file": ("", False),
         "dependencies-file": ("dependencies.yaml", True),
+        "disable-cuda": (False, True),
         "matrix-entry": ("", True),
-        "require-cuda": (True, True),
         "requires": (lambda: [], False),
     }
 

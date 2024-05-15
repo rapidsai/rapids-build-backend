@@ -10,7 +10,7 @@ from importlib import import_module
 from typing import Union
 
 import rapids_dependency_file_generator
-import tomli_w
+import tomlkit
 
 from . import utils
 from .config import Config
@@ -39,54 +39,36 @@ def _get_backend(build_backend):
 
 
 @lru_cache
-def _get_cuda_version(require_cuda: bool):
+def _get_cuda_version():
     """Get the CUDA suffix based on nvcc.
-
-    Parameters
-    ----------
-    require_cuda : bool
-        If True, raise an exception if nvcc is not in the PATH. If False, return None.
 
     Returns
     -------
     str or None
-        The CUDA major version (e.g., "11") or None if CUDA could not be detected.
+        The CUDA major version (e.g., "11")
     """
-    try:
-        nvcc_exists = (
-            subprocess.run(["which", "nvcc"], capture_output=True).returncode == 0
+    nvcc_exists = subprocess.run(["which", "nvcc"], capture_output=True).returncode == 0
+    if not nvcc_exists:
+        raise ValueError(
+            "Could not determine the CUDA version. Make sure nvcc is in your PATH."
         )
-        if not nvcc_exists:
-            raise ValueError(
-                "Could not determine the CUDA version. Make sure nvcc is in your PATH."
-            )
 
-        try:
-            process_output = subprocess.run(["nvcc", "--version"], capture_output=True)
-        except subprocess.CalledProcessError as e:
-            raise ValueError("Failed to get version from nvcc.") from e
+    try:
+        process_output = subprocess.run(["nvcc", "--version"], capture_output=True)
+    except subprocess.CalledProcessError as e:
+        raise ValueError("Failed to get version from nvcc.") from e
 
-        output_lines = process_output.stdout.decode().splitlines()
+    output_lines = process_output.stdout.decode().splitlines()
 
-        match = re.search(r"release (\d+)\.(\d+)", output_lines[3])
-        if match is None:
-            raise ValueError("Failed to parse CUDA version from nvcc output.")
-        return match.groups()
-    except Exception:
-        if not require_cuda:
-            return None
-        raise
+    match = re.search(r"release (\d+)\.(\d+)", output_lines[3])
+    if match is None:
+        raise ValueError("Failed to parse CUDA version from nvcc output.")
+    return match.groups()
 
 
 @lru_cache
-def _get_cuda_suffix(require_cuda: bool) -> str:
+def _get_cuda_suffix() -> str:
     """Get the CUDA suffix based on nvcc.
-
-    Parameters
-    ----------
-    require_cuda : bool
-        If True, raise an exception if CUDA could not be detected. If False, return an
-        empty string.
 
     Returns
     -------
@@ -94,7 +76,7 @@ def _get_cuda_suffix(require_cuda: bool) -> str:
         The CUDA suffix (e.g., "-cu11") or an empty string if CUDA could not be
         detected.
     """
-    if (version := _get_cuda_version(require_cuda)) is None:
+    if (version := _get_cuda_version()) is None:
         return ""
     return f"-cu{version[0]}"
 
@@ -165,7 +147,8 @@ def _edit_pyproject(config):
     pyproject_file = "pyproject.toml"
     bkp_pyproject_file = ".pyproject.toml.rapids-build-backend.bak"
 
-    cuda_version = _get_cuda_version(config.require_cuda)
+    if not config.disable_cuda:
+        cuda_version_major, cuda_version_minor = _get_cuda_version()
 
     try:
         parsed_config = rapids_dependency_file_generator.load_config_from_file(
@@ -193,8 +176,8 @@ def _edit_pyproject(config):
                 ):
                     continue
                 matrix = _parse_matrix(config.matrix_entry) or dict(file_config.matrix)
-                if cuda_version is not None:
-                    matrix["cuda"] = [f"{cuda_version[0]}.{cuda_version[1]}"]
+                if not config.disable_cuda:
+                    matrix["cuda"] = [f"{cuda_version_major}.{cuda_version_minor}"]
                 rapids_dependency_file_generator.make_dependency_files(
                     parsed_config=parsed_config,
                     file_keys=[file_key],
@@ -203,11 +186,12 @@ def _edit_pyproject(config):
                     prepend_channels=[],
                     to_stdout=False,
                 )
-        pyproject = utils._get_pyproject()
-        project_data = pyproject["project"]
-        project_data["name"] += _get_cuda_suffix(config.require_cuda)
-        with open(pyproject_file, "wb") as f:
-            tomli_w.dump(pyproject, f)
+        if not config.disable_cuda:
+            pyproject = utils._get_pyproject()
+            project_data = pyproject["project"]
+            project_data["name"] += _get_cuda_suffix()
+            with open(pyproject_file, "w") as f:
+                tomlkit.dump(pyproject, f)
         yield
     finally:
         # Restore by moving rather than writing to avoid any formatting changes.

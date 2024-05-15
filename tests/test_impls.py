@@ -66,6 +66,7 @@ def test_edit_git_commit(initial_contents):
         "pyproject_dir",
         "dependencies_file",
         "write_dependencies_file",
+        "disable_cuda",
         "cuda_version",
         "cuda_suffix",
         "cuda_python_requirement",
@@ -77,6 +78,7 @@ def test_edit_git_commit(initial_contents):
             ".",
             "dependencies.yaml",
             True,
+            False,
             ("11", "5"),
             "-cu11",
             "cuda-python>=11.5,<11.6.dev0",
@@ -87,6 +89,7 @@ def test_edit_git_commit(initial_contents):
             ".",
             "dependencies.yaml",
             True,
+            False,
             ("11", "5"),
             "-cu11",
             "cuda-python>=11.5,<11.6.dev0",
@@ -97,6 +100,7 @@ def test_edit_git_commit(initial_contents):
             "python",
             "../dependencies.yaml",
             True,
+            False,
             ("12", "1"),
             "-cu12",
             "cuda-python>=12.1,<12.2.dev0",
@@ -107,165 +111,186 @@ def test_edit_git_commit(initial_contents):
             ".",
             "dependencies.yaml",
             False,
+            False,
             ("11", "5"),
             "-cu11",
             None,
             "",
             None,
         ),
+        (
+            ".",
+            "dependencies.yaml",
+            True,
+            True,
+            None,  # Ensure _get_cuda_version() isn't called and unpacked
+            "",
+            "cuda-python",
+            "",
+            "some-x86-package",
+        ),
     ],
 )
 def test_edit_pyproject(
+    tmp_path,
     pyproject_dir,
     dependencies_file,
     write_dependencies_file,
+    disable_cuda,
     cuda_version,
     cuda_suffix,
     cuda_python_requirement,
     matrix,
     arch_requirement,
 ):
-    with tempfile.TemporaryDirectory() as d:
-        original_contents = dedent(
-            """\
-            [project]
-            name = "test-project"
-            dependencies = []
+    original_contents = dedent(
+        """\
+        [project]
+        name = "test-project"
+        dependencies = []
 
-            [build-system]
-            requires = []
-            """
+        [build-system]
+        requires = []
+        """
+    )
+    full_pyproject_dir = os.path.join(tmp_path, pyproject_dir)
+    if not os.path.exists(full_pyproject_dir):
+        os.mkdir(full_pyproject_dir)
+
+    with set_cwd(full_pyproject_dir):
+        with open("pyproject.toml", "w") as f:
+            f.write(original_contents)
+
+        if write_dependencies_file:
+            with open(dependencies_file, "w") as f:
+                f.write(
+                    dedent(
+                        f"""\
+                        files:
+                          project:
+                            output: pyproject
+                            includes:
+                              - project
+                              - arch
+                            pyproject_dir: {pyproject_dir}
+                            matrix:
+                              arch: ["x86_64"]
+                            extras:
+                              table: project
+                          build_system:
+                            output: pyproject
+                            includes:
+                              - build_system
+                            pyproject_dir: {pyproject_dir}
+                            extras:
+                              table: build-system
+                          other_project:
+                            output: pyproject
+                            includes:
+                              - bad
+                            pyproject_dir: python_bad
+                            extras:
+                              table: project
+                          conda:
+                            output: conda
+                            includes:
+                              - bad
+                        dependencies:
+                          project:
+                            common:
+                              - output_types: [pyproject]
+                                packages:
+                                  - tomli
+                            specific:
+                              - output_types: [pyproject]
+                                matrices:
+                                  - matrix:
+                                      cuda: "11.5"
+                                    packages:
+                                      - cuda-python>=11.5,<11.6.dev0
+                                  - matrix:
+                                      cuda: "12.1"
+                                    packages:
+                                      - cuda-python>=12.1,<12.2.dev0
+                                  - matrix:
+                                    packages:
+                                      - cuda-python
+                          build_system:
+                            common:
+                              - output_types: [pyproject]
+                                packages:
+                                  - scikit-build-core
+                          arch:
+                            specific:
+                              - output_types: [pyproject]
+                                matrices:
+                                  - matrix:
+                                      arch: x86_64
+                                    packages:
+                                      - some-x86-package
+                                  - matrix:
+                                      arch: aarch64
+                                    packages:
+                                      - some-arm-package
+                          bad:
+                            common:
+                              - output_types: [pyproject, conda]
+                                packages:
+                                  - bad-package
+                        """
+                    )
+                )
+        config = Mock(
+            disable_cuda=disable_cuda,
+            dependencies_file=dependencies_file,
+            matrix_entry=matrix,
         )
-        full_pyproject_dir = os.path.join(d, pyproject_dir)
-        if not os.path.exists(full_pyproject_dir):
-            os.mkdir(full_pyproject_dir)
 
-        with set_cwd(full_pyproject_dir):
-            with open("pyproject.toml", "w") as f:
-                f.write(original_contents)
-
-            if write_dependencies_file:
-                with open(dependencies_file, "w") as f:
-                    f.write(
-                        dedent(
+        with patch(
+            "rapids_build_backend.impls._get_cuda_version",
+            Mock(return_value=cuda_version),
+        ), patch(
+            "rapids_build_backend.impls._get_cuda_suffix",
+            _get_cuda_suffix.__wrapped__,
+        ):
+            with _edit_pyproject(config):
+                with open("pyproject.toml") as f:
+                    if write_dependencies_file:
+                        assert f.read() == dedent(
                             f"""\
-                            files:
-                              project:
-                                output: pyproject
-                                includes:
-                                  - project
-                                  - arch
-                                pyproject_dir: {pyproject_dir}
-                                matrix:
-                                  cuda: ["11.5"]
-                                  arch: ["x86_64"]
-                                extras:
-                                  table: project
-                              build_system:
-                                output: pyproject
-                                includes:
-                                  - build_system
-                                pyproject_dir: {pyproject_dir}
-                                extras:
-                                  table: build-system
-                              other_project:
-                                output: pyproject
-                                includes:
-                                  - bad
-                                pyproject_dir: python_bad
-                                extras:
-                                  table: project
-                              conda:
-                                output: conda
-                                includes:
-                                  - bad
-                            dependencies:
-                              project:
-                                common:
-                                  - output_types: [pyproject]
-                                    packages:
-                                      - tomli
-                                specific:
-                                  - output_types: [pyproject]
-                                    matrices:
-                                      - matrix:
-                                          cuda: "11.5"
-                                        packages:
-                                          - cuda-python>=11.5,<11.6.dev0
-                                      - matrix:
-                                          cuda: "12.1"
-                                        packages:
-                                          - cuda-python>=12.1,<12.2.dev0
-                              build_system:
-                                common:
-                                  - output_types: [pyproject]
-                                    packages:
-                                      - scikit-build-core
-                              arch:
-                                specific:
-                                  - output_types: [pyproject]
-                                    matrices:
-                                      - matrix:
-                                          arch: x86_64
-                                        packages:
-                                          - some-x86-package
-                                      - matrix:
-                                          arch: aarch64
-                                        packages:
-                                          - some-arm-package
-                              bad:
-                                common:
-                                  - output_types: [pyproject, conda]
-                                    packages:
-                                      - bad-package
+                            [project]
+                            name = "test-project{cuda_suffix}"
+                            dependencies = [
+                                "{cuda_python_requirement}",
+                                "{arch_requirement}",
+                                "tomli",
+                            ] # This list was generated by """
+                            """`rapids-dependency-file-generator`. To make """
+                            f"""changes, edit {dependencies_file} and run """
+                            """`rapids-dependency-file-generator`.
+
+                            [build-system]
+                            requires = [
+                                "scikit-build-core",
+                            ] # This list was generated by """
+                            """`rapids-dependency-file-generator`. To make """
+                            f"""changes, edit {dependencies_file} and run """
+                            """`rapids-dependency-file-generator`.
                             """
                         )
-                    )
-            config = Mock(
-                require_cuda=False,
-                dependencies_file=dependencies_file,
-                matrix_entry=matrix,
-            )
+                    else:
+                        assert f.read() == dedent(
+                            f"""\
+                            [project]
+                            name = "test-project{cuda_suffix}"
+                            dependencies = []
 
-            with patch(
-                "rapids_build_backend.impls._get_cuda_version",
-                Mock(return_value=cuda_version),
-            ), patch(
-                "rapids_build_backend.impls._get_cuda_suffix",
-                _get_cuda_suffix.__wrapped__,
-            ):
-                with _edit_pyproject(config):
-                    with open("pyproject.toml") as f:
-                        if write_dependencies_file:
-                            assert f.read() == dedent(
-                                f"""\
-                                [project]
-                                name = "test-project{cuda_suffix}"
-                                dependencies = [
-                                    "{cuda_python_requirement}",
-                                    "{arch_requirement}",
-                                    "tomli",
-                                ]
+                            [build-system]
+                            requires = []
+                            """
+                        )
+                with open(".pyproject.toml.rapids-build-backend.bak") as f:
+                    assert f.read() == original_contents
 
-                                [build-system]
-                                requires = [
-                                    "scikit-build-core",
-                                ]
-                                """
-                            )
-                        else:
-                            assert f.read() == dedent(
-                                f"""\
-                                [project]
-                                name = "test-project{cuda_suffix}"
-                                dependencies = []
-
-                                [build-system]
-                                requires = []
-                                """
-                            )
-                    with open(".pyproject.toml.rapids-build-backend.bak") as f:
-                        assert f.read() == original_contents
-
-            with open("pyproject.toml") as f:
-                assert f.read() == original_contents
+        with open("pyproject.toml") as f:
+            assert f.read() == original_contents
