@@ -28,9 +28,9 @@ def setup_config_project(tmp_path, flag, config_value):
         ("commit-files", '["pkg/_version.py"]', ["pkg/_version.py"]),
         ("commit-files", "[]", []),
         ("commit-files", None, None),
-        ("require-cuda", "true", True),
-        ("require-cuda", "false", False),
-        ("require-cuda", None, True),
+        ("disable-cuda", "true", True),
+        ("disable-cuda", "false", False),
+        ("disable-cuda", None, False),
     ],
 )
 def test_config(tmp_path, flag, config_value, expected):
@@ -41,8 +41,8 @@ def test_config(tmp_path, flag, config_value, expected):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
-        ("require-cuda", "true", True),
-        ("require-cuda", "false", False),
+        ("disable-cuda", "true", True),
+        ("disable-cuda", "false", False),
     ],
 )
 def test_config_env_var(tmp_path, flag, config_value, expected):
@@ -64,8 +64,8 @@ def test_config_env_var(tmp_path, flag, config_value, expected):
 @pytest.mark.parametrize(
     "flag, config_value, expected",
     [
-        ("require-cuda", "true", True),
-        ("require-cuda", "false", False),
+        ("disable-cuda", "true", True),
+        ("disable-cuda", "false", False),
     ],
 )
 def test_config_config_settings(tmp_path, flag, config_value, expected):

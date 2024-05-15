@@ -77,8 +77,7 @@ dependencies:
           - PyYAML
           - packaging
           - rapids-dependency-file-generator>=1.13.3,<2.0.dev0
-          - tomli
-          - tomli-w
+          - tomlkit
   test:
     common:
       - output_types: [conda, requirements, pyproject]

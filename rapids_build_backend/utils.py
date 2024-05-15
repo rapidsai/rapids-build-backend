@@ -2,10 +2,10 @@
 
 import os
 
-import tomli
+import tomlkit
 
 
-def _get_pyproject(dirname: str = ".") -> dict:
+def _get_pyproject(dirname: str = ".") -> tomlkit.toml_document.TOMLDocument:
     """Parse and return the pyproject.toml file."""
-    with open(os.path.join(dirname, "pyproject.toml"), "rb") as f:
-        return tomli.load(f)
+    with open(os.path.join(dirname, "pyproject.toml")) as f:
+        return tomlkit.load(f)
