@@ -263,9 +263,9 @@ def test_edit_pyproject(
             "rapids_build_backend.impls._get_cuda_suffix",
             _get_cuda_suffix.__wrapped__,
         ):
-            with _edit_pyproject(config):
-                with open("pyproject.toml") as f:
-                    if write_dependencies_file:
+            if write_dependencies_file:
+                with _edit_pyproject(config):
+                    with open("pyproject.toml") as f:
                         assert f.read() == dedent(
                             f"""\
                             [project]
@@ -288,19 +288,30 @@ def test_edit_pyproject(
                             """`rapids-dependency-file-generator`.
                             """
                         )
-                    else:
-                        assert f.read() == dedent(
-                            f"""\
-                            [project]
-                            name = "test-project{cuda_suffix}"
-                            dependencies = []
+                    with open(".pyproject.toml.rapids-build-backend.bak") as f:
+                        assert f.read() == original_contents
+            else:
+                with pytest.warns(
+                    UserWarning,
+                    match=rf"^File not found: '{dependencies_file}'\. If you want "
+                    "rapids-build-backend to consider dependencies from a dependencies "
+                    "file, supply an existing file via config setting "
+                    r"'dependencies-file'\.$",
+                ):
+                    with _edit_pyproject(config):
+                        with open("pyproject.toml") as f:
+                            assert f.read() == dedent(
+                                f"""\
+                                [project]
+                                name = "test-project{cuda_suffix}"
+                                dependencies = []
 
-                            [build-system]
-                            requires = []
-                            """
-                        )
-                with open(".pyproject.toml.rapids-build-backend.bak") as f:
-                    assert f.read() == original_contents
+                                [build-system]
+                                requires = []
+                                """
+                            )
+                        with open(".pyproject.toml.rapids-build-backend.bak") as f:
+                            assert f.read() == original_contents
 
         with open("pyproject.toml") as f:
             assert f.read() == original_contents
