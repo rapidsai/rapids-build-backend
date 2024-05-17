@@ -151,8 +151,8 @@ def _edit_pyproject(config):
     except FileNotFoundError:
         msg = (
             f"File not found: '{config.dependencies_file}'. If you want "
-            "rapids-build-backend to consider dependencies from a dependencies file, ",
-            "supply an existing file via config setting 'dependencies-file'.",
+            "rapids-build-backend to consider dependencies from a dependencies file, "
+            "supply an existing file via config setting 'dependencies-file'."
         )
         warnings.warn(msg, stacklevel=2)
         parsed_config = None
