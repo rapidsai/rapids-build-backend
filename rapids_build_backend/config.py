@@ -68,10 +68,14 @@ class Config:
                         return str_val == "true"
                     return os.environ[env_var]
 
-                if config_name in self.config_settings:
+                try:
+                    value = self.config_settings[f"rapidsai.{config_name}"]
+                except KeyError:
+                    pass
+                else:
                     if isinstance(default_value, bool):
-                        return self.config_settings[config_name] == "true"
-                    return self.config_settings[config_name]
+                        return value == "true"
+                    return value
 
             try:
                 return self.config[config_name]

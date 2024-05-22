@@ -10,6 +10,7 @@ import pytest
 from rapids_build_backend.impls import (
     _edit_pyproject,
     _get_cuda_suffix,
+    _remove_rapidsai_from_config,
     _write_git_commits,
 )
 
@@ -22,6 +23,12 @@ def set_cwd(cwd):
         yield
     finally:
         os.chdir(old_cwd)
+
+
+def test_remove_rapidsai_from_config():
+    assert _remove_rapidsai_from_config(
+        {"rapidsai.disable-cuda": "true", "skbuild.build-dir": "build"}
+    ) == {"skbuild.build-dir": "build"}
 
 
 @pytest.mark.parametrize(
