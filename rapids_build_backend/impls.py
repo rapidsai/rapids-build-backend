@@ -20,10 +20,9 @@ from .config import Config
 def _remove_rapidsai_from_config(
     config_settings: typing.Union[dict[str, typing.Any], None],
 ) -> typing.Union[dict[str, typing.Any], None]:
-    """
-    Filter out settings that begin with `rapidsai.` to be passed down to the underlying
-    backend, because some backends get confused if you pass them options that they don't
-    recognize.
+    """Filter out settings that begin with ``rapidsai.`` to be passed down to the
+    underlying backend, because some backends get confused if you pass them options that
+    they don't recognize.
     """
     if not config_settings:
         return None
