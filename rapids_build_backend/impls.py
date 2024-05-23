@@ -4,17 +4,29 @@ import os
 import re
 import shutil
 import subprocess
+import typing
 import warnings
 from contextlib import contextmanager
 from functools import lru_cache
 from importlib import import_module
-from typing import Union
 
 import rapids_dependency_file_generator
 import tomlkit
 
 from . import utils
 from .config import Config
+
+
+def _remove_rapidsai_from_config(
+    config_settings: typing.Union[dict[str, typing.Any], None],
+) -> typing.Union[dict[str, typing.Any], None]:
+    """Filter out settings that begin with ``rapidsai.`` to be passed down to the
+    underlying backend, because some backends get confused if you pass them options that
+    they don't recognize.
+    """
+    if not config_settings:
+        return None
+    return {k: v for k, v in config_settings.items() if not k.startswith("rapidsai.")}
 
 
 def _parse_matrix(matrix):
@@ -83,7 +95,7 @@ def _get_cuda_suffix() -> str:
 
 
 @lru_cache
-def _get_git_commit() -> Union[str, None]:
+def _get_git_commit() -> typing.Union[str, None]:
     """Get the current git commit.
 
     Returns None if git is not in the PATH or if it fails to find the commit.
@@ -222,7 +234,11 @@ def get_requires_for_build_wheel(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_wheel",
         ):
-            requires.extend(backend.get_requires_for_build_wheel(config_settings))
+            requires.extend(
+                backend.get_requires_for_build_wheel(
+                    _remove_rapidsai_from_config(config_settings)
+                )
+            )
 
         return requires
 
@@ -240,7 +256,11 @@ def get_requires_for_build_sdist(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_sdist",
         ):
-            requires.extend(backend.get_requires_for_build_sdist(config_settings))
+            requires.extend(
+                backend.get_requires_for_build_sdist(
+                    _remove_rapidsai_from_config(config_settings)
+                )
+            )
 
         return requires
 
@@ -256,7 +276,11 @@ def get_requires_for_build_editable(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_editable",
         ):
-            requires.extend(backend.get_requires_for_build_editable(config_settings))
+            requires.extend(
+                backend.get_requires_for_build_editable(
+                    _remove_rapidsai_from_config(config_settings)
+                )
+            )
 
         return requires
 
@@ -267,7 +291,9 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     project_name = pyproject["project"]["name"]
     with _edit_pyproject(config), _write_git_commits(config, project_name):
         return _get_backend(config.build_backend).build_wheel(
-            wheel_directory, config_settings, metadata_directory
+            wheel_directory,
+            _remove_rapidsai_from_config(config_settings),
+            metadata_directory,
         )
 
 
@@ -277,7 +303,7 @@ def build_sdist(sdist_directory, config_settings=None):
     project_name = pyproject["project"]["name"]
     with _edit_pyproject(config), _write_git_commits(config, project_name):
         return _get_backend(config.build_backend).build_sdist(
-            sdist_directory, config_settings
+            sdist_directory, _remove_rapidsai_from_config(config_settings)
         )
 
 
@@ -285,7 +311,9 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).build_editable(
-            wheel_directory, config_settings, metadata_directory
+            wheel_directory,
+            _remove_rapidsai_from_config(config_settings),
+            metadata_directory,
         )
 
 
@@ -293,7 +321,7 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).prepare_metadata_for_build_wheel(
-            metadata_directory, config_settings
+            metadata_directory, _remove_rapidsai_from_config(config_settings)
         )
 
 
@@ -301,5 +329,5 @@ def prepare_metadata_for_build_editable(metadata_directory, config_settings=None
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).prepare_metadata_for_build_editable(
-            metadata_directory, config_settings
+            metadata_directory, _remove_rapidsai_from_config(config_settings)
         )

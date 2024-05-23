@@ -71,6 +71,6 @@ def test_config_env_var(tmp_path, flag, config_value, expected):
 def test_config_config_settings(tmp_path, flag, config_value, expected):
     config = Config(
         setup_config_project(tmp_path, flag, None),
-        {flag: config_value},
+        {f"rapidsai.{flag}": config_value},
     )
     assert getattr(config, flag.replace("-", "_")) == expected
