@@ -4,11 +4,11 @@ import os
 import re
 import shutil
 import subprocess
+import typing
 import warnings
 from contextlib import contextmanager
 from functools import lru_cache
 from importlib import import_module
-from typing import Union
 
 import rapids_dependency_file_generator
 import tomlkit
@@ -17,7 +17,14 @@ from . import utils
 from .config import Config
 
 
-def _remove_rapidsai_from_config(config_settings):
+def _remove_rapidsai_from_config(
+    config_settings: typing.Union[dict[str, typing.Any], None],
+) -> typing.Union[dict[str, typing.Any], None]:
+    """
+    Filter out settings that begin with `rapidsai.` to be passed down to the underlying
+    backend, because some backends get confused if you pass them options that they don't
+    recognize.
+    """
     if not config_settings:
         return None
     return {k: v for k, v in config_settings.items() if not k.startswith("rapidsai.")}
@@ -89,7 +96,7 @@ def _get_cuda_suffix() -> str:
 
 
 @lru_cache
-def _get_git_commit() -> Union[str, None]:
+def _get_git_commit() -> typing.Union[str, None]:
     """Get the current git commit.
 
     Returns None if git is not in the PATH or if it fails to find the commit.
