@@ -210,6 +210,35 @@ def _edit_pyproject(config):
         shutil.move(bkp_pyproject_file, pyproject_file)
 
 
+def _check_setup_py(setup_py_contents: str) -> None:
+    """
+    ``setuptools.get_requires_for_build_wheel()`` executes setup.py if it exists,
+    to check for dependencies in ``setup_requires`` (passed to ``setuptools.setup()``).
+    
+    That's a problem for rapids-build-backend, as at the point where that's invoked,
+    its recalculated list of build dependencies (modified in ``_edit_pyproject()``) haven't yet
+    been installed.
+    
+    If any of them are imported in ``setup.py``, those imports will fail.
+
+    This function raises an exception if it detects ``setup_requires`` being used in a ``setup.py``,
+    to clarify that ``rapids-build-backend`` can't support that case.
+
+    ref: https://github.com/rapidsai/rapids-build-backend/issues/39
+    """
+
+    # pattern = "any use of 'setup_requires' on a line that isn't a comment"
+    setup_requires_pat = r"^(?!\s*#+).*setup_requires"
+
+    if bool(re.search(setup_requires_pat, setup_py_contents)):
+        error_msg = (
+            "Detected use of 'setup_requires' in a setup.py file. "
+            "rapids-build-backend does not support this pattern. Try moving "
+            "that list of dependencies into the 'requires' list in the [tool.rapids-build-backend] "
+            "table in pyproject.toml."
+        )
+        raise ValueError(error_msg)
+
 # The hooks in this file could be defined more programmatically by iterating over the
 # backend's attributes, but it's simpler to just define them explicitly and avoids any
 # potential issues with assuming the right pyproject.toml is readable at import time (we
@@ -234,11 +263,14 @@ def get_requires_for_build_wheel(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_wheel",
         ):
-            requires.extend(
-                backend.get_requires_for_build_wheel(
-                    _remove_rapidsai_from_config(config_settings)
+            if config.build_backend.startswith("setuptools"):
+                _check_setup_py(setup_py_contents = utils._get_setup_py())
+            else:
+                requires.extend(
+                    backend.get_requires_for_build_wheel(
+                        _remove_rapidsai_from_config(config_settings)
+                    )
                 )
-            )
 
         return requires
 
@@ -256,11 +288,14 @@ def get_requires_for_build_sdist(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_sdist",
         ):
-            requires.extend(
-                backend.get_requires_for_build_sdist(
-                    _remove_rapidsai_from_config(config_settings)
+            if config.build_backend.startswith("setuptools"):
+                _check_setup_py(setup_py_contents = utils._get_setup_py())
+            else:
+                requires.extend(
+                    backend.get_requires_for_build_sdist(
+                        _remove_rapidsai_from_config(config_settings)
+                    )
                 )
-            )
 
         return requires
 
@@ -276,11 +311,14 @@ def get_requires_for_build_editable(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_editable",
         ):
-            requires.extend(
-                backend.get_requires_for_build_editable(
-                    _remove_rapidsai_from_config(config_settings)
+            if config.build_backend.startswith("setuptools"):
+                _check_setup_py(setup_py_contents = utils._get_setup_py())
+            else:
+                requires.extend(
+                    backend.get_requires_for_build_editable(
+                        _remove_rapidsai_from_config(config_settings)
+                    )
                 )
-            )
 
         return requires
 
