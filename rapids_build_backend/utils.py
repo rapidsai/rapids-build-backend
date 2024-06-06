@@ -12,7 +12,10 @@ def _get_pyproject(dirname: str = ".") -> tomlkit.toml_document.TOMLDocument:
 
 
 def _get_setup_py() -> str:
-    """Return a string with the contents of setup.py, or None if it doesn't exist."""
+    """
+    Returns a string with the contents of setup.py,
+    or empty string if it doesn't exist.
+    """
     # setuptools.build_meta.get_requires_for_wheel() assumes that "setup.py" is directly
     # relative to the current working directly, so rapids-build-backend can too.
     #
