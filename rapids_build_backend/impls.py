@@ -266,6 +266,15 @@ def get_requires_for_build_wheel(config_settings):
         ):
             if config.build_backend.startswith("setuptools"):
                 _check_setup_py(setup_py_contents=utils._get_setup_py())
+                # prior to https://github.com/pypa/setuptools/pull/4369 (May 2024),
+                # setuptools.build_meta.get_requires_for_build_wheel() automatically
+                # added 'wheel' to the build requirements. Adding that manually here,
+                # since this code block skips running
+                # setuptools.build_meta.get_requires_for_build_wheel().
+                #
+                # Without this, running 'pip wheel' might result in an error like
+                # "error: invalid command 'bdist_wheel'".
+                requires.extend(["wheel"])
             else:
                 requires.extend(
                     backend.get_requires_for_build_wheel(
