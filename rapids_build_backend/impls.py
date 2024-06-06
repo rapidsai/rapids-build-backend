@@ -4,15 +4,29 @@ import os
 import re
 import shutil
 import subprocess
+import typing
+import warnings
 from contextlib import contextmanager
 from functools import lru_cache
 from importlib import import_module
 
 import rapids_dependency_file_generator
-import tomli_w
+import tomlkit
 
 from . import utils
 from .config import Config
+
+
+def _remove_rapidsai_from_config(
+    config_settings: typing.Union[dict[str, typing.Any], None],
+) -> typing.Union[dict[str, typing.Any], None]:
+    """Filter out settings that begin with ``rapidsai.`` to be passed down to the
+    underlying backend, because some backends get confused if you pass them options that
+    they don't recognize.
+    """
+    if not config_settings:
+        return None
+    return {k: v for k, v in config_settings.items() if not k.startswith("rapidsai.")}
 
 
 def _parse_matrix(matrix):
@@ -38,54 +52,36 @@ def _get_backend(build_backend):
 
 
 @lru_cache
-def _get_cuda_version(require_cuda=False):
+def _get_cuda_version():
     """Get the CUDA suffix based on nvcc.
-
-    Parameters
-    ----------
-    require_cuda : bool
-        If True, raise an exception if nvcc is not in the PATH. If False, return None.
 
     Returns
     -------
     str or None
-        The CUDA major version (e.g., "11") or None if CUDA could not be detected.
+        The CUDA major version (e.g., "11")
     """
-    try:
-        nvcc_exists = (
-            subprocess.run(["which", "nvcc"], capture_output=True).returncode == 0
+    nvcc_exists = subprocess.run(["which", "nvcc"], capture_output=True).returncode == 0
+    if not nvcc_exists:
+        raise ValueError(
+            "Could not determine the CUDA version. Make sure nvcc is in your PATH."
         )
-        if not nvcc_exists:
-            raise ValueError(
-                "Could not determine the CUDA version. Make sure nvcc is in your PATH."
-            )
 
-        try:
-            process_output = subprocess.run(["nvcc", "--version"], capture_output=True)
-        except subprocess.CalledProcessError as e:
-            raise ValueError("Failed to get version from nvcc.") from e
+    try:
+        process_output = subprocess.run(["nvcc", "--version"], capture_output=True)
+    except subprocess.CalledProcessError as e:
+        raise ValueError("Failed to get version from nvcc.") from e
 
-        output_lines = process_output.stdout.decode().splitlines()
+    output_lines = process_output.stdout.decode().splitlines()
 
-        match = re.search(r"release (\d+)\.(\d+)", output_lines[3])
-        if match is None:
-            raise ValueError("Failed to parse CUDA version from nvcc output.")
-        return match.groups()
-    except Exception:
-        if not require_cuda:
-            return None
-        raise
+    match = re.search(r"release (\d+)\.(\d+)", output_lines[3])
+    if match is None:
+        raise ValueError("Failed to parse CUDA version from nvcc output.")
+    return match.groups()
 
 
 @lru_cache
-def _get_cuda_suffix(require_cuda=False):
+def _get_cuda_suffix() -> str:
     """Get the CUDA suffix based on nvcc.
-
-    Parameters
-    ----------
-    require_cuda : bool
-        If True, raise an exception if CUDA could not be detected. If False, return an
-        empty string.
 
     Returns
     -------
@@ -93,13 +89,13 @@ def _get_cuda_suffix(require_cuda=False):
         The CUDA suffix (e.g., "-cu11") or an empty string if CUDA could not be
         detected.
     """
-    if (version := _get_cuda_version(require_cuda)) is None:
+    if (version := _get_cuda_version()) is None:
         return ""
     return f"-cu{version[0]}"
 
 
 @lru_cache
-def _get_git_commit():
+def _get_git_commit() -> typing.Union[str, None]:
     """Get the current git commit.
 
     Returns None if git is not in the PATH or if it fails to find the commit.
@@ -117,36 +113,27 @@ def _get_git_commit():
 
 
 @contextmanager
-def _edit_git_commit(config):
+def _write_git_commits(config, project_name: str):
     """
-    Temporarily modify the git commit of the package being built.
+    Temporarily write the git commit files for the package being built. If the
+    `commit-files` config option is not specified, write to `<project_name>/GIT_COMMIT`.
 
     This is useful for projects that want to embed the current git commit in the package
     at build time.
     """
-    commit_file = config.commit_file
-    commit = _get_git_commit()
+    commit_files = config.commit_files
+    if commit_files is None:
+        commit_files = [os.path.join(project_name.replace("-", "_"), "GIT_COMMIT")]
+    commit = _get_git_commit() if commit_files else None
 
-    if commit_file != "" and commit is not None:
-        bkp_commit_file = os.path.join(
-            os.path.dirname(commit_file),
-            f".{os.path.basename(commit_file)}.rapids-build-backend.bak",
-        )
-        try:
-            try:
-                shutil.move(commit_file, bkp_commit_file)
-            except FileNotFoundError:
-                bkp_commit_file = None
-
+    if commit is not None:
+        for commit_file in commit_files:
             with open(commit_file, "w") as f:
                 f.write(f"{commit}\n")
-
+        try:
             yield
         finally:
-            # Restore by moving rather than writing to avoid any formatting changes.
-            if bkp_commit_file:
-                shutil.move(bkp_commit_file, commit_file)
-            else:
+            for commit_file in commit_files:
                 os.unlink(commit_file)
     else:
         yield
@@ -164,13 +151,22 @@ def _edit_pyproject(config):
     pyproject_file = "pyproject.toml"
     bkp_pyproject_file = ".pyproject.toml.rapids-build-backend.bak"
 
-    cuda_version = _get_cuda_version(config.require_cuda)
+    if not config.disable_cuda:
+        cuda_version_major, cuda_version_minor = _get_cuda_version()
 
+    # "dependencies.yaml" might not exist in sdists and wouldn't need to... so don't
+    # raise an exception if that file can't be found when this runs
     try:
         parsed_config = rapids_dependency_file_generator.load_config_from_file(
             config.dependencies_file
         )
     except FileNotFoundError:
+        msg = (
+            f"File not found: '{config.dependencies_file}'. If you want "
+            "rapids-build-backend to consider dependencies from a dependencies file, "
+            "supply an existing file via config setting 'dependencies-file'."
+        )
+        warnings.warn(msg, stacklevel=2)
         parsed_config = None
 
     try:
@@ -192,8 +188,8 @@ def _edit_pyproject(config):
                 ):
                     continue
                 matrix = _parse_matrix(config.matrix_entry) or dict(file_config.matrix)
-                if cuda_version is not None:
-                    matrix["cuda"] = [f"{cuda_version[0]}.{cuda_version[1]}"]
+                if not config.disable_cuda:
+                    matrix["cuda"] = [f"{cuda_version_major}.{cuda_version_minor}"]
                 rapids_dependency_file_generator.make_dependency_files(
                     parsed_config=parsed_config,
                     file_keys=[file_key],
@@ -202,11 +198,12 @@ def _edit_pyproject(config):
                     prepend_channels=[],
                     to_stdout=False,
                 )
-        pyproject = utils._get_pyproject()
-        project_data = pyproject["project"]
-        project_data["name"] += _get_cuda_suffix(config.require_cuda)
-        with open(pyproject_file, "wb") as f:
-            tomli_w.dump(pyproject, f)
+        if not config.disable_cuda:
+            pyproject = utils._get_pyproject()
+            project_data = pyproject["project"]
+            project_data["name"] += _get_cuda_suffix()
+            with open(pyproject_file, "w") as f:
+                tomlkit.dump(pyproject, f)
         yield
     finally:
         # Restore by moving rather than writing to avoid any formatting changes.
@@ -226,7 +223,9 @@ def _edit_pyproject(config):
 # (the actual build backend, which conditionally imports these functions).
 def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    pyproject = utils._get_pyproject()
+    project_name = pyproject["project"]["name"]
+    with _edit_pyproject(config), _write_git_commits(config, project_name):
         # Reload the config for a possibly updated tool.rapids-build-backend.requires
         reloaded_config = Config(config_settings=config_settings)
         requires = list(reloaded_config.requires)
@@ -235,14 +234,20 @@ def get_requires_for_build_wheel(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_wheel",
         ):
-            requires.extend(backend.get_requires_for_build_wheel(config_settings))
+            requires.extend(
+                backend.get_requires_for_build_wheel(
+                    _remove_rapidsai_from_config(config_settings)
+                )
+            )
 
         return requires
 
 
 def get_requires_for_build_sdist(config_settings):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    pyproject = utils._get_pyproject()
+    project_name = pyproject["project"]["name"]
+    with _edit_pyproject(config), _write_git_commits(config, project_name):
         # Reload the config for a possibly updated tool.rapids-build-backend.requires
         reloaded_config = Config(config_settings=config_settings)
         requires = list(reloaded_config.requires)
@@ -251,7 +256,11 @@ def get_requires_for_build_sdist(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_sdist",
         ):
-            requires.extend(backend.get_requires_for_build_sdist(config_settings))
+            requires.extend(
+                backend.get_requires_for_build_sdist(
+                    _remove_rapidsai_from_config(config_settings)
+                )
+            )
 
         return requires
 
@@ -267,24 +276,34 @@ def get_requires_for_build_editable(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_editable",
         ):
-            requires.extend(backend.get_requires_for_build_editable(config_settings))
+            requires.extend(
+                backend.get_requires_for_build_editable(
+                    _remove_rapidsai_from_config(config_settings)
+                )
+            )
 
         return requires
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    pyproject = utils._get_pyproject()
+    project_name = pyproject["project"]["name"]
+    with _edit_pyproject(config), _write_git_commits(config, project_name):
         return _get_backend(config.build_backend).build_wheel(
-            wheel_directory, config_settings, metadata_directory
+            wheel_directory,
+            _remove_rapidsai_from_config(config_settings),
+            metadata_directory,
         )
 
 
 def build_sdist(sdist_directory, config_settings=None):
     config = Config(config_settings=config_settings)
-    with _edit_pyproject(config), _edit_git_commit(config):
+    pyproject = utils._get_pyproject()
+    project_name = pyproject["project"]["name"]
+    with _edit_pyproject(config), _write_git_commits(config, project_name):
         return _get_backend(config.build_backend).build_sdist(
-            sdist_directory, config_settings
+            sdist_directory, _remove_rapidsai_from_config(config_settings)
         )
 
 
@@ -292,7 +311,9 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).build_editable(
-            wheel_directory, config_settings, metadata_directory
+            wheel_directory,
+            _remove_rapidsai_from_config(config_settings),
+            metadata_directory,
         )
 
 
@@ -300,7 +321,7 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).prepare_metadata_for_build_wheel(
-            metadata_directory, config_settings
+            metadata_directory, _remove_rapidsai_from_config(config_settings)
         )
 
 
@@ -308,5 +329,5 @@ def prepare_metadata_for_build_editable(metadata_directory, config_settings=None
     config = Config(config_settings=config_settings)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).prepare_metadata_for_build_editable(
-            metadata_directory, config_settings
+            metadata_directory, _remove_rapidsai_from_config(config_settings)
         )

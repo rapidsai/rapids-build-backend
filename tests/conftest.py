@@ -11,8 +11,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import pytest
-import tomli
-import tomli_w
+import tomlkit
 from jinja2 import Environment, FileSystemLoader
 from packaging.version import parse as parse_version
 
@@ -69,7 +68,10 @@ def patch_nvcc_if_needed(nvcc_version):
     try:
         # Only create a patch if one is required. In addition to reducing overhead, this
         # also ensures that we test the real nvcc and don't mask any relevant errors.
-        if _get_cuda_version() is None or _get_cuda_version()[0] != nvcc_version:
+        try:
+            if _get_cuda_version()[0] != nvcc_version:
+                raise ValueError
+        except ValueError:
             nvcc = _create_nvcc(nvcc_version)
             os.environ["PATH"] = os.pathsep.join(
                 [os.path.dirname(nvcc), os.environ["PATH"]]
@@ -176,14 +178,14 @@ def wheelhouse(tmp_path_factory, pip_cache):
     )
 
     pyproject_file = rapids_build_backend_build_dir / "pyproject.toml"
-    with open(pyproject_file, "rb") as f:
-        pyproject = tomli.load(f)
+    with open(pyproject_file) as f:
+        pyproject = tomlkit.load(f)
     project_data = pyproject["project"]
 
     version = parse_version(project_data["version"])
     project_data["version"] = f"{version.major + 1}.{version.minor}.{version.micro}"
-    with open(pyproject_file, "wb") as f:
-        tomli_w.dump(pyproject, f)
+    with open(pyproject_file, "w") as f:
+        tomlkit.dump(pyproject, f)
 
     subprocess.run(
         [

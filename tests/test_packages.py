@@ -67,7 +67,7 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
     }
 
     package_dir = tmp_path / "pkg"
-    os.makedirs(package_dir)
+    os.makedirs(package_dir / "simple_setuptools")
 
     generate_from_template(package_dir, "dependencies.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
@@ -99,7 +99,7 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     }
 
     package_dir = tmp_path / "pkg"
-    os.makedirs(package_dir)
+    os.makedirs(package_dir / "simple_scikit_build_core")
 
     generate_from_template(package_dir, "dependencies.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
