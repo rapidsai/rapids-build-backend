@@ -113,7 +113,9 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
         name, build_requires, requirements, extras = _generate_wheel(env, package_dir)
 
     assert name == f"simple_scikit_build_core-cu{nvcc_version}"
-    assert {f"rmm-cu{nvcc_version}>=24.4.0,>=0.0.0a0"}.issubset(build_requires)
+    # note: this is also testing that the dependency specifiers were rearranged
+    #       (i.e. that >=0.0.0a0 comes before >=24.4.0)
+    assert {f"rmm-cu{nvcc_version}>=0.0.0a,>=24.4.0"}.issubset(build_requires)
     assert requirements == {f"cupy-cuda{nvcc_version}x>=12.0.0"}
     if nvcc_version == "11":
         assert extras == {"jit": {"ptxcompiler-cu11"}}
