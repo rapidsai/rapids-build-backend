@@ -3,9 +3,6 @@
 
 set -euo pipefail
 
-# TODO: revert before merging (just trying to quiet down the noise to find the root cause)
-rm /etc/xdg/pip/pip.conf
-
 python -m pip wheel . -w dist -vv --no-deps --disable-pip-version-check
 
 # Run tests
