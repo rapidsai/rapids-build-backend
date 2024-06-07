@@ -90,9 +90,14 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
             "cu12": ["cupy-cuda12x>=12.0.0"],
         },
         "extras": {"jit": {"cu11": ["ptxcompiler-cu11"]}},
+        # having multiple >= constraints is weird, but it's here to avoid
+        # https://github.com/rapidsai/rapids-build-backend/pull/40#issuecomment-2152949912
+        # (by always pulling from from pypi.anaconda.org/rapidsai-wheels-nightly)
+        # while still testing that rapids-build-backend preserves all the dependency
+        # specifiers
         "build_requires": {
-            "cu11": ["rmm-cu11==24.4.*,>=0.0.0a0"],
-            "cu12": ["rmm-cu12==24.4.*,>=0.0.0a0"],
+            "cu11": ["rmm-cu11>=24.4.0,>=0.0.0a0"],
+            "cu12": ["rmm-cu12>=24.4.0,>=0.0.0a0"],
         },
         "build_backend": "scikit_build_core.build",
         "build_backend_package": "scikit-build-core",
@@ -109,7 +114,9 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
         name, build_requires, requirements, extras = _generate_wheel(env, package_dir)
 
     assert name == f"simple_scikit_build_core-cu{nvcc_version}"
-    assert {f"rmm-cu{nvcc_version}==24.4.*,>=0.0.0a0"}.issubset(build_requires)
+    # note: this is also testing that the dependency specifiers were rearranged
+    #       (i.e. that >=0.0.0a0 comes before >=24.4.0)
+    assert {f"rmm-cu{nvcc_version}>=0.0.0a0,>=24.4.0"}.issubset(build_requires)
     assert requirements == {f"cupy-cuda{nvcc_version}x>=12.0.0"}
     if nvcc_version == "11":
         assert extras == {"jit": {"ptxcompiler-cu11"}}
