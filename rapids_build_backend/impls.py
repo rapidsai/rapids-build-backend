@@ -230,7 +230,7 @@ def _check_setup_py(setup_py_contents: str) -> None:
     # pattern = "any use of 'setup_requires' on a line that isn't a comment"
     setup_requires_pat = r"^(?!\s*#+).*setup_requires"
 
-    if bool(re.search(setup_requires_pat, setup_py_contents)):
+    if bool(re.search(setup_requires_pat, setup_py_contents, re.M)):
         error_msg = (
             "Detected use of 'setup_requires' in a setup.py file. "
             "rapids-build-backend does not support this pattern. Try moving "

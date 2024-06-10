@@ -86,13 +86,15 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
 # rapids-build-backend should support projects using setuptools whose setup.py
 # file has 'import' statements depending on some project(s) that need to be extracted
 # from dependencies.yaml at build time
-def test_setuptools_with_imports_in_setup_py(tmp_path, isolated_env, examples_dir):
+def test_setuptools_with_imports_in_setup_py_works(
+    tmp_path, isolated_env, examples_dir
+):
     package_dir = tmp_path / "pkg"
     shutil.copytree(
         src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir
     )
 
-    with patch_nvcc_if_needed(nvcc_version="86"):
+    with patch_nvcc_if_needed(nvcc_version="85"):
         name, build_requires, requirements, extras = _generate_wheel(
             env=isolated_env, package_dir=package_dir
         )
@@ -124,6 +126,25 @@ def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
 
     captured_output = capfd.readouterr()
     assert "ModuleNotFoundError: No module named 'matplotlib'" in captured_output.out
+
+
+def test_setuptools_with_setup_requires_fails_with_informative_error(
+    tmp_path, isolated_env, examples_dir, capfd
+):
+    package_dir = tmp_path / "pkg"
+    shutil.copytree(
+        src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir
+    )
+
+    with open(package_dir / "setup.py", "w") as f:
+        f.write("from setuptools import setup\nsetup(setup_requires=['Cython'])\n")
+
+    with patch_nvcc_if_needed(nvcc_version="85"):
+        with pytest.raises(subprocess.CalledProcessError, match=".*pip.*"):
+            _generate_wheel(env=isolated_env, package_dir=package_dir)
+
+    captured_output = capfd.readouterr()
+    assert "ValueError: Detected use of 'setup_requires' in a setup.py file" in captured_output.out
 
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])
