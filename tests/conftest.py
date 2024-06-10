@@ -60,6 +60,11 @@ def _create_nvcc(nvcc_version):
     os.chmod(fn, 0o755)
     return fn
 
+@pytest.fixture
+def examples_dir():
+    """Directory with test project files."""
+    return pathlib.Path(__file__) / "examples"
+
 
 @contextmanager
 def patch_nvcc_if_needed(nvcc_version):

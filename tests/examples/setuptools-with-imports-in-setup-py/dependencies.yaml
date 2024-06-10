@@ -1,0 +1,39 @@
+files:
+  py_build:
+    output: pyproject
+    pyproject_dir: .
+    extras:
+      table: build-system
+    includes:
+      - rapids_build_setuptools
+  py_rapids_build:
+    output: pyproject
+    pyproject_dir: .
+    extras:
+      table: tool.rapids-build-backend
+      key: requires
+    includes:
+      - build_python
+dependencies:
+  build_python:
+    common:
+      - output_types: [conda, requirements]
+        packages:
+          - pre-commit
+  rapids_build_setuptools:
+    common:
+      - output_types: [pyproject, requirements]
+        packages:
+          - rapids-build-backend
+          - setuptools>=64.0.0
+    specific:
+      - output_types: [pyproject, requirements]
+        matrices:
+          - matrix: {cuda: "85.*"}
+            packages:
+              - matplotlib
+          # keeping this empty means it'll only be filled in if
+          # rapids-build-backend actually resolves one of the CUDA-specific
+          # matrices
+          - matrix: null
+            packages: null
