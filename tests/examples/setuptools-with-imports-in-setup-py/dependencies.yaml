@@ -16,7 +16,7 @@ dependencies:
         matrices:
           - matrix: {cuda: "85.*"}
             packages:
-              - matplotlib
+              - more-itertools
           # keeping this empty means it'll only be filled in if
           # rapids-build-backend actually resolves one of the CUDA-specific
           # matrices

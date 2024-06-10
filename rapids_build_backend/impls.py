@@ -264,7 +264,7 @@ def get_requires_for_build_wheel(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_wheel",
         ):
-            if config.build_backend.startswith("setuptools"):
+            if config.build_backend == "setuptools.build_meta":
                 _check_setup_py(setup_py_contents=utils._get_setup_py())
                 # prior to https://github.com/pypa/setuptools/pull/4369 (May 2024),
                 # setuptools.build_meta.get_requires_for_build_wheel() automatically
@@ -298,7 +298,7 @@ def get_requires_for_build_sdist(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_sdist",
         ):
-            if config.build_backend.startswith("setuptools"):
+            if config.build_backend == "setuptools.build_meta":
                 _check_setup_py(setup_py_contents=utils._get_setup_py())
             else:
                 requires.extend(
@@ -321,7 +321,7 @@ def get_requires_for_build_editable(config_settings):
             backend := _get_backend(config.build_backend),
             "get_requires_for_build_editable",
         ):
-            if config.build_backend.startswith("setuptools"):
+            if config.build_backend == "setuptools.build_meta":
                 _check_setup_py(setup_py_contents=utils._get_setup_py())
             else:
                 requires.extend(

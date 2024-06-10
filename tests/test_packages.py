@@ -100,7 +100,7 @@ def test_setuptools_with_imports_in_setup_py_works(
         )
 
     assert name == "setuptools-with-imports-in-setup-py-cu85"
-    assert {"matplotlib"}.issubset(build_requires)
+    assert {"more-itertools"}.issubset(build_requires)
     assert requirements == set()
 
 
@@ -113,19 +113,21 @@ def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
     )
 
     # only the CUDA '85.*' in this example provides required build dependency
-    # 'matplotlib', so it won't be found if using some other matrix.
+    # 'more-itertools', so it won't be found if using some other matrix.
     #
     # This test confirms that rapids-build-backend fails loudly in that case, instead of
     # silently ignoring it.
     #
-    # It'd also catch the case where other tests accidentally pass because 'matplotlib'
-    # already existed in the environment where tests run.
+    # It'd also catch the case where other tests accidentally pass because
+    # 'more-itertools' already existed in the environment where tests run.
     with patch_nvcc_if_needed(nvcc_version="25"):
         with pytest.raises(subprocess.CalledProcessError, match=".*pip.*"):
             _generate_wheel(env=isolated_env, package_dir=package_dir)
 
     captured_output = capfd.readouterr()
-    assert "ModuleNotFoundError: No module named 'matplotlib'" in captured_output.out
+    assert (
+        "ModuleNotFoundError: No module named 'more_itertools'" in captured_output.out
+    )
 
 
 def test_setuptools_with_setup_requires_fails_with_informative_error(

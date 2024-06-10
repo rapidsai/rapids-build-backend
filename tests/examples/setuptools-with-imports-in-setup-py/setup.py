@@ -1,11 +1,11 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
-# Note that 'matplotlib is not listed anywhere in pyproject.toml.
+# Note that more-itertools is not listed anywhere in pyproject.toml.
 # This import can only succeed if rapids-build-backend successfully identified it as
 # a build-time dependency via dependencies.yaml.
-import matplotlib
+import more_itertools
 from setuptools import setup
 
-print(matplotlib.__version__)
+print(more_itertools.__version__)
 
 setup()
