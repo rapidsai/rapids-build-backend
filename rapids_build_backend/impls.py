@@ -231,13 +231,12 @@ def _check_setup_py(setup_py_contents: str) -> None:
     setup_requires_pat = r"^(?!\s*#+).*setup_requires"
 
     if re.search(setup_requires_pat, setup_py_contents, re.M) is not None:
-        error_msg = (
+        raise ValueError(
             "Detected use of 'setup_requires' in a setup.py file. "
             "rapids-build-backend does not support this pattern. Try moving "
             "that list of dependencies into the 'requires' list in the "
             "[tool.rapids-build-backend] table in pyproject.toml."
         )
-        raise ValueError(error_msg)
 
 
 # The hooks in this file could be defined more programmatically by iterating over the
