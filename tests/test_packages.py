@@ -144,7 +144,10 @@ def test_setuptools_with_setup_requires_fails_with_informative_error(
             _generate_wheel(env=isolated_env, package_dir=package_dir)
 
     captured_output = capfd.readouterr()
-    assert "ValueError: Detected use of 'setup_requires' in a setup.py file" in captured_output.out
+    assert (
+        "ValueError: Detected use of 'setup_requires' in a setup.py file"
+        in captured_output.out
+    )
 
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])

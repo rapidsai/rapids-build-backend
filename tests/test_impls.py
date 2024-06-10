@@ -336,12 +336,12 @@ def test_edit_pyproject(
         ("from setuptools import setup\nsetup(setup_requires=[])\n", True),
         # 'setup_requires' actually passed into setup(), on its own line
         (
-            "from setuptools import setup\nsetup(\n    setup_requires=['rmm']\n)\n# setup_requires\n",
+            "from setuptools import setup\nsetup(\n    setup_requires=['rmm']\n)\n# setup_requires\n",  # noqa: E501
             True,
         ),
         # 'setup_requires' actually passed into setup(), via a dictionary
         (
-            "from setuptools import setup\nopts={'setup_requires': ['rmm']}\nsetup(**opts)\n",
+            "from setuptools import setup\nopts={'setup_requires': ['rmm']}\nsetup(**opts)\n",  # noqa: E501
             True,
         ),
     ],
