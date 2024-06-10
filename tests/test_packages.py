@@ -2,11 +2,12 @@
 
 import glob
 import os
+import shutil
+import subprocess
 import zipfile
 from email.parser import BytesParser
 
 import pytest
-import shutil
 from conftest import generate_from_template, patch_nvcc_if_needed
 
 
@@ -82,17 +83,47 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
     assert extras == {"test": {"dask-cuda==24.4.*,>=0.0.0a0"}}
 
 
-def test_simple_setuptools_with_imports_in_setup_py(tmp_path, isolated_env, examples_dir):
-
+# rapids-build-backend should support projects using setuptools whose setup.py
+# file has 'import' statements depending on some project(s) that need to be extracted
+# from dependencies.yaml at build time
+def test_setuptools_with_imports_in_setup_py(tmp_path, isolated_env, examples_dir):
     package_dir = tmp_path / "pkg"
-    shutil.copytree(src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir)
+    shutil.copytree(
+        src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir
+    )
 
-    with patch_nvcc_if_needed(nvcc_version="85"):
-        name, build_requires, requirements, extras = _generate_wheel(env=isolated_env, package_dir=package_dir)
+    with patch_nvcc_if_needed(nvcc_version="86"):
+        name, build_requires, requirements, extras = _generate_wheel(
+            env=isolated_env, package_dir=package_dir
+        )
 
-    assert name == f"setuptools-with-imports-in-setup-py-cu85"
-    assert {f"matplotlib"}.issubset(build_requires)
+    assert name == "setuptools-with-imports-in-setup-py-cu85"
+    assert {"matplotlib"}.issubset(build_requires)
     assert requirements == set()
+
+
+def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
+    tmp_path, isolated_env, examples_dir, capfd
+):
+    package_dir = tmp_path / "pkg"
+    shutil.copytree(
+        src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir
+    )
+
+    # only the CUDA '85.*' in this example provides required build dependency
+    # 'matplotlib', so it won't be found if using some other matrix.
+    #
+    # This test confirms that rapids-build-backend fails loudly in that case, instead of
+    # silently ignoring it.
+    #
+    # It'd also catch the case where other tests accidentally pass because 'matplotlib'
+    # already existed in the environment where tests run.
+    with patch_nvcc_if_needed(nvcc_version="25"):
+        with pytest.raises(subprocess.CalledProcessError, match=".*pip.*"):
+            _generate_wheel(env=isolated_env, package_dir=package_dir)
+
+    captured_output = capfd.readouterr()
+    assert "ModuleNotFoundError: No module named 'matplotlib'" in captured_output.out
 
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])

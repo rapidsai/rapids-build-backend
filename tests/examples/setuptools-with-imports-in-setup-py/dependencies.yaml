@@ -1,11 +1,6 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.
+
 files:
-  py_build:
-    output: pyproject
-    pyproject_dir: .
-    extras:
-      table: build-system
-    includes:
-      - rapids_build_setuptools
   py_rapids_build:
     output: pyproject
     pyproject_dir: .
@@ -27,9 +22,3 @@ dependencies:
           # matrices
           - matrix: null
             packages: null
-  rapids_build_setuptools:
-    common:
-      - output_types: [pyproject, requirements]
-        packages:
-          - rapids-build-backend
-          - setuptools>=64.0.0
