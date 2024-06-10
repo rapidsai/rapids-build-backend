@@ -16,16 +16,6 @@ files:
       - build_python
 dependencies:
   build_python:
-    common:
-      - output_types: [conda, requirements]
-        packages:
-          - pre-commit
-  rapids_build_setuptools:
-    common:
-      - output_types: [pyproject, requirements]
-        packages:
-          - rapids-build-backend
-          - setuptools>=64.0.0
     specific:
       - output_types: [pyproject, requirements]
         matrices:
@@ -37,3 +27,9 @@ dependencies:
           # matrices
           - matrix: null
             packages: null
+  rapids_build_setuptools:
+    common:
+      - output_types: [pyproject, requirements]
+        packages:
+          - rapids-build-backend
+          - setuptools>=64.0.0

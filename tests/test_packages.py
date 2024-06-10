@@ -6,6 +6,7 @@ import zipfile
 from email.parser import BytesParser
 
 import pytest
+import shutil
 from conftest import generate_from_template, patch_nvcc_if_needed
 
 
@@ -79,6 +80,19 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
     assert {f"rmm-cu{nvcc_version}>=0.0.0a0"}.issubset(build_requires)
     assert requirements == {f"rmm-cu{nvcc_version}>=0.0.0a0"}
     assert extras == {"test": {"dask-cuda==24.4.*,>=0.0.0a0"}}
+
+
+def test_simple_setuptools_with_imports_in_setup_py(tmp_path, isolated_env, examples_dir):
+
+    package_dir = tmp_path / "pkg"
+    shutil.copytree(src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir)
+
+    with patch_nvcc_if_needed(nvcc_version="85"):
+        name, build_requires, requirements, extras = _generate_wheel(env=isolated_env, package_dir=package_dir)
+
+    assert name == f"setuptools-with-imports-in-setup-py-cu85"
+    assert {f"matplotlib"}.issubset(build_requires)
+    assert requirements == set()
 
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])

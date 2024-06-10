@@ -63,7 +63,7 @@ def _create_nvcc(nvcc_version):
 @pytest.fixture
 def examples_dir():
     """Directory with test project files."""
-    return pathlib.Path(__file__) / "examples"
+    return Path(__file__).parent / "examples"
 
 
 @contextmanager
