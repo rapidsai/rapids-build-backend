@@ -61,12 +61,6 @@ def _create_nvcc(nvcc_version):
     return fn
 
 
-@pytest.fixture
-def examples_dir():
-    """Directory with test project files."""
-    return Path(__file__).parent / "examples"
-
-
 @contextmanager
 def patch_nvcc_if_needed(nvcc_version):
     """Patch the PATH to insert a spoofed nvcc that returns the desired version."""

@@ -1,5 +1,13 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
+# [description]
+#
+#   dependencies.yaml that intentionally only updates [tool.rapids-build-backend] table
+#   in pyproject.toml.
+#
+#   Create new templates to test other dependencies.yaml contents.
+#
+
 files:
   py_rapids_build:
     output: pyproject

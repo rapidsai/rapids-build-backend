@@ -2,7 +2,6 @@
 
 import glob
 import os
-import shutil
 import subprocess
 import zipfile
 from email.parser import BytesParser
@@ -87,12 +86,31 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
 # file has 'import' statements depending on some project(s) that need to be extracted
 # from dependencies.yaml at build time
 def test_setuptools_with_imports_in_setup_py_works(
-    tmp_path, isolated_env, examples_dir
+    tmp_path,
+    isolated_env,
 ):
     package_dir = tmp_path / "pkg"
-    shutil.copytree(
-        src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir
-    )
+    os.makedirs(package_dir)
+
+    template_args = {
+        "name": "setuptools-with-imports-in-setup-py",
+        "build_backend": "setuptools.build_meta",
+        "build_backend_package": "setuptools",
+        "flags": {
+            "commit-files": "[]",
+            "dependencies-file": '"dependencies-rbb-only.yaml"',
+        },
+        "setup_py_lines": [
+            "import more_itertools",
+            "",
+            "print(more_itertools.__version__)",
+            "",
+            "setup()",
+        ],
+    }
+    generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
+    generate_from_template(package_dir, "pyproject.toml", template_args)
+    generate_from_template(package_dir, "setup.py", template_args)
 
     with patch_nvcc_if_needed(nvcc_version="85"):
         name, build_requires, requirements, extras = _generate_wheel(
@@ -105,12 +123,30 @@ def test_setuptools_with_imports_in_setup_py_works(
 
 
 def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
-    tmp_path, isolated_env, examples_dir, capfd
+    tmp_path, isolated_env, capfd
 ):
     package_dir = tmp_path / "pkg"
-    shutil.copytree(
-        src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir
-    )
+    os.makedirs(package_dir)
+
+    template_args = {
+        "name": "setuptools-with-imports-in-setup-py",
+        "build_backend": "setuptools.build_meta",
+        "build_backend_package": "setuptools",
+        "flags": {
+            "commit-files": "[]",
+            "dependencies-file": '"dependencies-rbb-only.yaml"',
+        },
+        "setup_py_lines": [
+            "import more_itertools",
+            "",
+            "print(more_itertools.__version__)",
+            "",
+            "setup()",
+        ],
+    }
+    generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
+    generate_from_template(package_dir, "pyproject.toml", template_args)
+    generate_from_template(package_dir, "setup.py", template_args)
 
     # only the CUDA '85.*' in this example provides required build dependency
     # 'more-itertools', so it won't be found if using some other matrix.
@@ -131,15 +167,31 @@ def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
 
 
 def test_setuptools_with_setup_requires_fails_with_informative_error(
-    tmp_path, isolated_env, examples_dir, capfd
+    tmp_path, isolated_env, capfd
 ):
     package_dir = tmp_path / "pkg"
-    shutil.copytree(
-        src=examples_dir / "setuptools-with-imports-in-setup-py", dst=package_dir
-    )
-
-    with open(package_dir / "setup.py", "w") as f:
-        f.write("from setuptools import setup\nsetup(setup_requires=['Cython'])\n")
+    os.makedirs(package_dir)
+    template_args = {
+        "name": "setuptools-with-imports-in-setup-py",
+        "build_backend": "setuptools.build_meta",
+        "build_backend_package": "setuptools",
+        "flags": {
+            "commit-files": "[]",
+            "dependencies-file": '"dependencies-rbb-only.yaml"',
+        },
+        "setup_py_lines": [
+            "import more_itertools",
+            "",
+            "print(more_itertools.__version__)",
+            "",
+            "setup(",
+            "    setup_requires=['more-itertools'],",
+            ")",
+        ],
+    }
+    generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
+    generate_from_template(package_dir, "pyproject.toml", template_args)
+    generate_from_template(package_dir, "setup.py", template_args)
 
     with patch_nvcc_if_needed(nvcc_version="85"):
         with pytest.raises(subprocess.CalledProcessError, match=".*pip.*"):
