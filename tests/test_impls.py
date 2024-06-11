@@ -326,34 +326,55 @@ def test_edit_pyproject(
 
 
 @pytest.mark.parametrize(
-    ["setup_py_content", "expect_error"],
+    ("setup_py_content",),
     [
-        ("", False),
-        ("from setuptools import setup\n\nsetup()\n", False),
+        # empty
+        ("",),
         # 'setup_requires' in a comment on its own line
-        ("from setuptools import setup\n# setup_requires\n\nsetup()\n", False),
-        # 'setup_requires' actually passed into setup(), on the same line
-        ("from setuptools import setup\nsetup(setup_requires=[])\n", True),
-        # 'setup_requires' actually passed into setup(), on its own line
         (
-            "from setuptools import setup\nsetup(\n    setup_requires=['rmm']\n)\n# setup_requires\n",  # noqa: E501
-            True,
-        ),
-        # 'setup_requires' actually passed into setup(), via a dictionary
-        (
-            "from setuptools import setup\nopts={'setup_requires': ['rmm']}\nsetup(**opts)\n",  # noqa: E501
-            True,
+            """
+            from setuptools import setup
+            # setup_requires
+            setup()
+            """,
         ),
     ],
 )
-def test_check_setup_py(
-    setup_py_content,
-    expect_error,
-):
-    if expect_error:
-        with pytest.raises(
-            ValueError, match=r"Detected use of 'setup_requires' in a setup\.py file"
-        ):
-            _check_setup_py(setup_py_content)
-    else:
-        _check_setup_py(setup_py_content) is None
+def test_check_setup_py_works_when_setup_requires_not_passed(setup_py_content):
+    assert _check_setup_py(setup_py_content) is None
+
+
+@pytest.mark.parametrize(
+    ("setup_py_content",),
+    [
+        # 'setup_requires' actually passed into setup(), on the same line
+        (
+            """
+            from setuptools import setup
+            setup(setup_requires=[])
+            """,
+        ),
+        # 'setup_requires' actually passed into setup(), on its own line
+        (
+            """
+            from setuptools import setup
+            setup(
+                setup_requires=['rmm']
+            )
+            """,
+        ),
+        # 'setup_requires' actually passed into setup(), via a dictionary
+        (
+            """
+            from setuptools import setup
+            opts = {'setup_requires': ['rmm']}
+            setup(**opts)
+            """,
+        ),
+    ],
+)
+def test_check_setup_py_fails_when_setup_requires_is_passed(setup_py_content):
+    with pytest.raises(
+        ValueError, match=r"Detected use of 'setup_requires' in a setup\.py file"
+    ):
+        _check_setup_py(setup_py_content)
