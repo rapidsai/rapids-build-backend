@@ -346,7 +346,6 @@ def test_edit_pyproject(
         ),
     ],
 )
-@patch("rapids_build_backend.impls._get_git_commit", Mock(return_value="abc123"))
 def test_check_setup_py(
     setup_py_content,
     expect_error,
