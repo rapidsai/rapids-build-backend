@@ -1,8 +1,8 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 {% set pyproject_data = load_file_data("pyproject.toml") %}
-{% set version = pyproject_data.get('project', {}).get('version') %}
-{% set summary = pyproject_data.get('project', {}).get('description') %}
+{% set version = pyproject_data["project"]["version"] %}
+{% set summary = pyproject_data["project"]["description"] %}
 
 package:
   name: rapids-build-backend
@@ -21,28 +21,18 @@ requirements:
     - pip
     - python >=3.9
     - conda-verify
-    {% for r in pyproject_data.get("build-system", {}).get("requires", []) %}
+    {% for r in pyproject_data["build-system"]["requires"] %}
     - {{ r }}
     {% endfor %}
   run:
-    {% for r in pyproject_data.get("project", {}).get("dependencies", []) %}
+    {% for r in pyproject_data["project"]["dependencies"] %}
     - {{ r }}
-    {% endfor %}
-
-    # Automatically include all extras since we have no way to request optional
-    # subsets in conda.
-    {% for extra, extra_deps in pyproject_data.get("project", {}).get("optional-dependencies", {}).items() %}
-    {% if extra != "test" %}
-    {% for r in extra_deps %}
-    - {{ r }}
-    {% endfor %}
-    {% endif %}
     {% endfor %}
 
 about:
   home: https://rapids.ai/
-  license: Apache-2.0
-  license_file: LICENSE
+  license: {{ pyproject_data["license"]["text"] }}
+  license_file: {{ pyproject_data["tool"]["setuptools"]["license-files"][0] }}
   summary: {{ summary }}
   description: |
     This package contains the PEP 517 build backend adapter used by all of
