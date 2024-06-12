@@ -31,7 +31,7 @@ requirements:
 
 about:
   home: https://rapids.ai/
-  license: {{ pyproject_data["license"]["text"] }}
+  license: {{ pyproject_data["project"]["license"]["text"] }}
   license_file: {{ pyproject_data["tool"]["setuptools"]["license-files"][0] }}
   summary: {{ summary }}
   description: |
