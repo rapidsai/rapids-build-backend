@@ -2,6 +2,7 @@
 
 import glob
 import os
+import subprocess
 import zipfile
 from email.parser import BytesParser
 
@@ -79,6 +80,128 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
     assert {f"rmm-cu{nvcc_version}>=0.0.0a0"}.issubset(build_requires)
     assert requirements == {f"rmm-cu{nvcc_version}>=0.0.0a0"}
     assert extras == {"test": {"dask-cuda==24.4.*,>=0.0.0a0"}}
+
+
+# rapids-build-backend should support projects using setuptools whose setup.py
+# file has 'import' statements depending on some project(s) that need to be extracted
+# from dependencies.yaml at build time
+def test_setuptools_with_imports_in_setup_py_works(
+    tmp_path,
+    isolated_env,
+):
+    package_dir = tmp_path / "pkg"
+    os.makedirs(package_dir)
+
+    template_args = {
+        "name": "setuptools-with-imports-in-setup-py",
+        "build_backend": "setuptools.build_meta",
+        "build_backend_package": "setuptools",
+        "flags": {
+            "commit-files": "[]",
+            "dependencies-file": '"dependencies-rbb-only.yaml"',
+        },
+        "setup_py_lines": [
+            "import more_itertools",
+            "",
+            "print(more_itertools.__version__)",
+            "",
+            "setup()",
+        ],
+    }
+    generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
+    generate_from_template(package_dir, "pyproject.toml", template_args)
+    generate_from_template(package_dir, "setup.py", template_args)
+
+    with patch_nvcc_if_needed(nvcc_version="85"):
+        name, build_requires, requirements, extras = _generate_wheel(
+            env=isolated_env, package_dir=package_dir
+        )
+
+    assert name == "setuptools-with-imports-in-setup-py-cu85"
+    assert {"more-itertools"}.issubset(build_requires)
+    assert requirements == set()
+
+
+def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
+    tmp_path, isolated_env, capfd
+):
+    package_dir = tmp_path / "pkg"
+    os.makedirs(package_dir)
+
+    template_args = {
+        "name": "setuptools-with-imports-in-setup-py",
+        "build_backend": "setuptools.build_meta",
+        "build_backend_package": "setuptools",
+        "flags": {
+            "commit-files": "[]",
+            "dependencies-file": '"dependencies-rbb-only.yaml"',
+        },
+        "setup_py_lines": [
+            "import more_itertools",
+            "",
+            "print(more_itertools.__version__)",
+            "",
+            "setup()",
+        ],
+    }
+    generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
+    generate_from_template(package_dir, "pyproject.toml", template_args)
+    generate_from_template(package_dir, "setup.py", template_args)
+
+    # only the CUDA '85.*' in this example provides required build dependency
+    # 'more-itertools', so it won't be found if using some other matrix.
+    #
+    # This test confirms that rapids-build-backend fails loudly in that case, instead of
+    # silently ignoring it.
+    #
+    # It'd also catch the case where other tests accidentally pass because
+    # 'more-itertools' already existed in the environment where tests run.
+    with patch_nvcc_if_needed(nvcc_version="25"):
+        with pytest.raises(subprocess.CalledProcessError, match=".*pip.*"):
+            _generate_wheel(env=isolated_env, package_dir=package_dir)
+
+    captured_output = capfd.readouterr()
+    assert (
+        "ModuleNotFoundError: No module named 'more_itertools'" in captured_output.out
+    )
+
+
+def test_setuptools_with_setup_requires_fails_with_informative_error(
+    tmp_path, isolated_env, capfd
+):
+    package_dir = tmp_path / "pkg"
+    os.makedirs(package_dir)
+    template_args = {
+        "name": "setuptools-with-imports-in-setup-py",
+        "build_backend": "setuptools.build_meta",
+        "build_backend_package": "setuptools",
+        "flags": {
+            "commit-files": "[]",
+            "dependencies-file": '"dependencies-rbb-only.yaml"',
+        },
+        "setup_py_lines": [
+            "import more_itertools",
+            "",
+            "print(more_itertools.__version__)",
+            "",
+            "setup(",
+            "    setup_requires=['more-itertools'],",
+            ")",
+        ],
+    }
+    generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
+    generate_from_template(package_dir, "pyproject.toml", template_args)
+    generate_from_template(package_dir, "setup.py", template_args)
+
+    with patch_nvcc_if_needed(nvcc_version="85"):
+        with pytest.raises(subprocess.CalledProcessError, match=".*pip.*"):
+            _generate_wheel(env=isolated_env, package_dir=package_dir)
+
+    captured_output = capfd.readouterr()
+    assert (
+        "ValueError: Detected use of 'setup_requires' in a setup.py file"
+        in captured_output.out
+    )
 
 
 @pytest.mark.parametrize("nvcc_version", ["11", "12"])

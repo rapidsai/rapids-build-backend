@@ -1,5 +1,10 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
+exclude: |
+  (?x)^(
+      tests/templates/.*py
+  )$
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

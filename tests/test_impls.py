@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from rapids_build_backend.impls import (
+    _check_setup_py,
     _edit_pyproject,
     _get_cuda_suffix,
     _remove_rapidsai_from_config,
@@ -322,3 +323,58 @@ def test_edit_pyproject(
 
         with open("pyproject.toml") as f:
             assert f.read() == original_contents
+
+
+@pytest.mark.parametrize(
+    ("setup_py_content",),
+    [
+        # empty
+        ("",),
+        # 'setup_requires' in a comment on its own line
+        (
+            """
+            from setuptools import setup
+            # setup_requires
+            setup()
+            """,
+        ),
+    ],
+)
+def test_check_setup_py_works_when_setup_requires_not_passed(setup_py_content):
+    assert _check_setup_py(setup_py_content) is None
+
+
+@pytest.mark.parametrize(
+    ("setup_py_content",),
+    [
+        # 'setup_requires' actually passed into setup(), on the same line
+        (
+            """
+            from setuptools import setup
+            setup(setup_requires=[])
+            """,
+        ),
+        # 'setup_requires' actually passed into setup(), on its own line
+        (
+            """
+            from setuptools import setup
+            setup(
+                setup_requires=['rmm']
+            )
+            """,
+        ),
+        # 'setup_requires' actually passed into setup(), via a dictionary
+        (
+            """
+            from setuptools import setup
+            opts = {'setup_requires': ['rmm']}
+            setup(**opts)
+            """,
+        ),
+    ],
+)
+def test_check_setup_py_fails_when_setup_requires_is_passed(setup_py_content):
+    with pytest.raises(
+        ValueError, match=r"Detected use of 'setup_requires' in a setup\.py file"
+    ):
+        _check_setup_py(setup_py_content)
