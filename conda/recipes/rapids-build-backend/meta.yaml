@@ -30,7 +30,7 @@ requirements:
     {% endfor %}
 
 about:
-  home: https://rapids.ai/
+  home: {{ data["project"]["urls"]["Homepage"] }}
   license: {{ pyproject_data["project"]["license"]["text"] }}
   license_file: {{ pyproject_data["tool"]["setuptools"]["license-files"][0] }}
   summary: {{ summary }}
@@ -39,5 +39,5 @@ about:
     RAPIDS. It does not directly perform builds, but rather performs various
     RAPIDS-specific metadata manipulations before calling down to another build
     backend like setuptools to finish the job.
-  doc_url: https://docs.rapids.ai/
-  dev_url: https://github.com/rapidsai/rapids-build-backend
+  dev_url: {{ data["project"]["urls"]["Source"] }}
+  doc_url: {{ data["project"]["urls"]["Documentation"] }}
