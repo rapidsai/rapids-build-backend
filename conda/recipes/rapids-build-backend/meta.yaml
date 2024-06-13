@@ -2,7 +2,6 @@
 
 {% set pyproject_data = load_file_data("pyproject.toml") %}
 {% set version = pyproject_data["project"]["version"] %}
-{% set summary = pyproject_data["project"]["description"] %}
 
 package:
   name: rapids-build-backend
@@ -30,14 +29,14 @@ requirements:
     {% endfor %}
 
 about:
-  home: {{ data["project"]["urls"]["Homepage"] }}
+  home: {{ pyproject_data["project"]["urls"]["Homepage"] }}
   license: {{ pyproject_data["project"]["license"]["text"] }}
   license_file: {{ pyproject_data["tool"]["setuptools"]["license-files"][0] }}
-  summary: {{ summary }}
+  summary: {{ pyproject_data["project"]["description"] }}
   description: |
     This package contains the PEP 517 build backend adapter used by all of
     RAPIDS. It does not directly perform builds, but rather performs various
     RAPIDS-specific metadata manipulations before calling down to another build
     backend like setuptools to finish the job.
-  dev_url: {{ data["project"]["urls"]["Source"] }}
-  doc_url: {{ data["project"]["urls"]["Documentation"] }}
+  dev_url: {{ pyproject_data["project"]["urls"]["Source"] }}
+  doc_url: {{ pyproject_data["project"]["urls"]["Documentation"] }}
