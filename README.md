@@ -83,6 +83,9 @@ Any other build-time dependencies should be provided via `requires` in the `[too
 For example:
 
 ```toml
+[tool.rapids-build-backend]
+build-backend = "setuptools.build_meta"
+dependencies-file = "dependencies.yaml"
 requires = [
     "cython>=3.0.0",
 ] 
