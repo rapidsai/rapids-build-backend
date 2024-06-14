@@ -1,17 +1,26 @@
 # RAPIDS PEP517 build backend
 
 `rapids-build-backend` is an adapter around PEP517 builders that provides support for key RAPIDS requirements.
-It currently support `scikit-build-core` and `setuptools` as the wrapped builder.
+
 The package's primary purpose is to automate the various bits of preprocessing that are typically done to RAPIDS package metadata prior to publishing packages.
-This includes the following notable changes:
-- Running [`rapids-dependency-file-generator`](https://github.com/rapidsai/dependency-file-generator) to get the dependencies for the CUDA version and architecture.
+
+It is responsible for the following:
+
+- Determining the correct dependencies for the package, based on the target CUDA version and architecture
+  - *by running [`rapids-dependency-file-generator`](https://github.com/rapidsai/dependency-file-generator)*
 - Modifying the package name to include a CUDA suffix (e.g. `"rmm" -> "rmm-cu11"`)
 - Updating the git commit embedded in the importable package.
 
-Since some of these modifications are only desirable in certain scenarios (wheel vs conda builds vs editable installs), all of these functions are customizable via the project's configuration in pyproject.toml.
-In cases where more dynamic customization is sensible, suitable environment variables and `config_settings` are supported during builds of distributions.
+## Supported builders
+
+The project is known to support the following builders:
+
+* `scikit-build-core`
+* `setuptools`
 
 ## Supported configuration
+
+`rapids-build-backend` exposes configuration for skipping or modifying behaviors that might be desirable only in some scenarios (e.g. wheel vs conda builds vs editable installs).
 
 Any option without a default is required.
 
@@ -24,10 +33,13 @@ Any option without a default is required.
 | `matrix-entry`        | A `;`-separated list of `=`-delimited key/value pairs                                            | string         | ""                            | Y                             |
 | `requires`            | List of build requirements (in addition to `build-system.requires`)                              | list[str]      | []                            | N                             |
 
+This configuration can be provided via the following mechanisms:
 
-## Outstanding questions
-
-- How should we split up build requirements between `build-system` and `tool.rapids-build-backend`? In theory any dependency that doesn't need suffixing could also go into `build-system.requires`. I think it's easier to teach that all dependencies other than `rapids-build-backend` itself should to into `tool.rapids-build-backend`, but I don't know how others feel.
+* `[tool.rapids-build-backend]` table in `pyproject.toml`
+* `-C / --config-settings` passed to tools like `build` and `pip`
+   - *(prefixed with `rapidsai.`, e.g. `pip wheel -C rapidsai.disable=cuda=true .`)*
+* environment variables
+    - *(prefixed with `RAPIDS_`, e.g. `RAPIDS_DISABLE_CUDA=true pip wheel .`)*
 
 ## `setuptools` support
 
@@ -51,6 +63,30 @@ requires = [
 ]
 ```
 
-## Rejected ideas
+## Other build dependencies
 
-- We could also include the rewrite of VERSION that we use for RAPIDS builds, but this is really more specific to our release process than the general process of building our wheels. I don't think someone building a wheel locally should see the same version as what we produce via CI. If we really wanted we could pull dunamai as a dependency and write a different version here, though.
+When using `rapids-build-backend`, the `[build-system]` table in `pyproject.toml` should only include `rapids-build-backend` and the library providing the build backend it wraps.
+
+For example:
+
+```toml
+[build-system]
+build-backend = "rapids_build_backend.build"
+requires = [
+    "rapids-build-backend>=0.3.0,<0.4.0dev0",
+    "setuptools>=64.0.0",
+]
+```
+
+Any other build-time dependencies should be provided via `requires` in the `[tool.rapids-build-backend]` table.
+
+For example:
+
+```toml
+[tool.rapids-build-backend]
+build-backend = "setuptools.build_meta"
+dependencies-file = "dependencies.yaml"
+requires = [
+    "cython>=3.0.0",
+]
+```
