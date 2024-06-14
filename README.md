@@ -6,7 +6,7 @@ The package's primary purpose is to automate the various bits of preprocessing t
 
 It is responsible for the following:
 
-- Determing the correct dependencies for the package, based on the target CUDA version and architecture
+- Determining the correct dependencies for the package, based on the target CUDA version and architecture
   - *by running [`rapids-dependency-file-generator`](https://github.com/rapidsai/dependency-file-generator)*
 - Modifying the package name to include a CUDA suffix (e.g. `"rmm" -> "rmm-cu11"`)
 - Updating the git commit embedded in the importable package.
@@ -88,5 +88,5 @@ build-backend = "setuptools.build_meta"
 dependencies-file = "dependencies.yaml"
 requires = [
     "cython>=3.0.0",
-] 
+]
 ```
