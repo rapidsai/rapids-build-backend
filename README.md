@@ -11,7 +11,7 @@ It is responsible for the following:
 - Modifying the package name to include a CUDA suffix (e.g. `"rmm" -> "rmm-cu11"`)
 - Updating the git commit embedded in the importable package.
 
-## Support builders
+## Supported builders
 
 The project is known to support the following builders:
 
