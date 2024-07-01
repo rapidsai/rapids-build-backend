@@ -44,6 +44,7 @@ jobs:
     with:
       build_type: ${{ inputs.build_type }}
       package-name: rapids-build-backend
+      publish_to_pypi: true
     if: ${{ inputs.publish }}
   publish-conda:
     needs:
