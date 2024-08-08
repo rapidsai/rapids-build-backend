@@ -2,6 +2,7 @@
 
 import glob
 import os
+import re
 import subprocess
 import zipfile
 from email.parser import BytesParser
@@ -29,6 +30,10 @@ def _generate_wheel(env, package_dir):
                 break
             if "Collecting" in line:
                 build_requires.add(line.replace("Collecting ", "").replace(" ", ""))
+            elif re.search(
+                r"Processing .*/rapids_test_dummy-0\.0\.1-py3-none-any\.whl$", line
+            ):
+                build_requires.add("rapids-test-dummy")
 
     # Extract metadata from the wheel file.
     wheel = glob.glob(str(package_dir / "*.whl"))[0]
@@ -101,9 +106,9 @@ def test_setuptools_with_imports_in_setup_py_works(
             "dependencies-file": '"dependencies-rbb-only.yaml"',
         },
         "setup_py_lines": [
-            "import more_itertools",
+            "import rapids_test_dummy",
             "",
-            "print(more_itertools.__version__)",
+            "print(rapids_test_dummy.__version__)",
             "",
             "setup()",
         ],
@@ -118,7 +123,7 @@ def test_setuptools_with_imports_in_setup_py_works(
         )
 
     assert name == "setuptools-with-imports-in-setup-py-cu85"
-    assert {"more-itertools"}.issubset(build_requires)
+    assert {"rapids-test-dummy"}.issubset(build_requires)
     assert requirements == set()
 
 
@@ -137,9 +142,9 @@ def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
             "dependencies-file": '"dependencies-rbb-only.yaml"',
         },
         "setup_py_lines": [
-            "import more_itertools",
+            "import rapids_test_dummy",
             "",
-            "print(more_itertools.__version__)",
+            "print(rapids_test_dummy.__version__)",
             "",
             "setup()",
         ],
@@ -149,20 +154,21 @@ def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
     generate_from_template(package_dir, "setup.py", template_args)
 
     # only the CUDA '85.*' in this example provides required build dependency
-    # 'more-itertools', so it won't be found if using some other matrix.
+    # 'rapids-test-dummy', so it won't be found if using some other matrix.
     #
     # This test confirms that rapids-build-backend fails loudly in that case, instead of
     # silently ignoring it.
     #
     # It'd also catch the case where other tests accidentally pass because
-    # 'more-itertools' already existed in the environment where tests run.
+    # 'rapids-test-dummy' already existed in the environment where tests run.
     with patch_nvcc_if_needed(nvcc_version="25"):
         with pytest.raises(subprocess.CalledProcessError, match=".*pip.*"):
             _generate_wheel(env=isolated_env, package_dir=package_dir)
 
     captured_output = capfd.readouterr()
     assert (
-        "ModuleNotFoundError: No module named 'more_itertools'" in captured_output.out
+        "ModuleNotFoundError: No module named 'rapids_test_dummy'"
+        in captured_output.out
     )
 
 
@@ -180,12 +186,12 @@ def test_setuptools_with_setup_requires_fails_with_informative_error(
             "dependencies-file": '"dependencies-rbb-only.yaml"',
         },
         "setup_py_lines": [
-            "import more_itertools",
+            "import rapids_test_dummy",
             "",
-            "print(more_itertools.__version__)",
+            "print(rapids_test_dummy.__version__)",
             "",
             "setup(",
-            "    setup_requires=['more-itertools'],",
+            "    setup_requires=['rapids-test-dummy'],",
             ")",
         ],
     }

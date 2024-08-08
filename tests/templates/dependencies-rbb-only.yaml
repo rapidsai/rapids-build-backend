@@ -24,7 +24,7 @@ dependencies:
         matrices:
           - matrix: {cuda: "85.*"}
             packages:
-              - more-itertools
+              - rapids-test-dummy
           # keeping this empty means it'll only be filled in if
           # rapids-build-backend actually resolves one of the CUDA-specific
           # matrices
