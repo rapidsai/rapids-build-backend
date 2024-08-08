@@ -164,8 +164,8 @@ def wheelhouse(tmp_path_factory, pip_cache):
     """A PEP 517 wheelhouse containing the local copy of rapids-build-backend."""
     wheelhouse = tmp_path_factory.mktemp("wheelhouse")
 
-    # Build the rapids-builder wheel in a temporary directory where we can bump the
-    # version to ensure that it is preferred to any other available wheels.
+    # Build the rapids-build-backend wheel in a temporary directory where we can bump
+    # the version to ensure that it is preferred to any other available wheels.
     rapids_build_backend_build_dir = tmp_path_factory.mktemp(
         "rapids_build_backend_build_dir"
     )
@@ -174,11 +174,6 @@ def wheelhouse(tmp_path_factory, pip_cache):
         DIR,
         rapids_build_backend_build_dir,
         ignore=shutil.ignore_patterns("tests*"),
-        dirs_exist_ok=True,
-    )
-    shutil.copytree(
-        DIR / "tests/rapids-test-dummy",
-        rapids_build_backend_build_dir / "tests/rapids-test-dummy",
         dirs_exist_ok=True,
     )
 
@@ -219,7 +214,7 @@ def wheelhouse(tmp_path_factory, pip_cache):
             str(wheelhouse),
             "--cache-dir",
             pip_cache,
-            f"{rapids_build_backend_build_dir}/tests/rapids-test-dummy",
+            f"{DIR}/tests/rapids-test-dummy",
         ],
         check=True,
     )
