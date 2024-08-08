@@ -176,6 +176,11 @@ def wheelhouse(tmp_path_factory, pip_cache):
         ignore=shutil.ignore_patterns("tests*"),
         dirs_exist_ok=True,
     )
+    shutil.copytree(
+        DIR / "tests/rapids-test-dummy",
+        rapids_build_backend_build_dir / "tests/rapids-test-dummy",
+        dirs_exist_ok=True,
+    )
 
     pyproject_file = rapids_build_backend_build_dir / "pyproject.toml"
     with open(pyproject_file) as f:
@@ -199,6 +204,22 @@ def wheelhouse(tmp_path_factory, pip_cache):
             "--cache-dir",
             pip_cache,
             f"{rapids_build_backend_build_dir}",
+        ],
+        check=True,
+    )
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "wheel",
+            "--disable-pip-version-check",
+            "--wheel-dir",
+            str(wheelhouse),
+            "--cache-dir",
+            pip_cache,
+            f"{rapids_build_backend_build_dir}/tests/rapids-test-dummy",
         ],
         check=True,
     )
