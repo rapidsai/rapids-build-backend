@@ -1,6 +1,7 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 import os.path
+import platform
 from contextlib import contextmanager
 from textwrap import dedent
 from unittest.mock import Mock, patch
@@ -10,6 +11,7 @@ import pytest
 from rapids_build_backend.impls import (
     _check_setup_py,
     _edit_pyproject,
+    _get_arch,
     _get_cuda_suffix,
     _remove_rapidsai_from_config,
     _write_git_commits,
@@ -88,8 +90,9 @@ def test_write_git_commits(
         "cuda_version",
         "cuda_suffix",
         "cuda_python_requirement",
-        "matrix",
+        "arch",
         "arch_requirement",
+        "matrix",
     ],
     [
         (
@@ -100,8 +103,9 @@ def test_write_git_commits(
             ("11", "5"),
             "-cu11",
             "cuda-python>=11.5,<11.6.dev0",
-            "",
+            "x86_64",
             "some-x86-package",
+            "",
         ),
         (
             ".",
@@ -111,8 +115,9 @@ def test_write_git_commits(
             ("11", "5"),
             "-cu11",
             "cuda-python>=11.5,<11.6.dev0",
-            "arch=aarch64",
+            "aarch64",
             "some-arm-package",
+            "",
         ),
         (
             "python",
@@ -122,8 +127,9 @@ def test_write_git_commits(
             ("12", "1"),
             "-cu12",
             "cuda-python>=12.1,<12.2.dev0",
-            "",
+            "x86_64",
             "some-x86-package",
+            "",
         ),
         (
             ".",
@@ -133,8 +139,11 @@ def test_write_git_commits(
             ("11", "5"),
             "-cu11",
             None,
+            None,  # Test the arch detection logic
+            "some-x86-package"
+            if platform.machine() == "x86_64"
+            else "some-arm-package",
             "",
-            None,
         ),
         (
             ".",
@@ -144,8 +153,11 @@ def test_write_git_commits(
             None,  # Ensure _get_cuda_version() isn't called and unpacked
             "",
             "cuda-python",
+            None,  # Test the arch detection logic
+            "some-x86-package"
+            if platform.machine() == "x86_64"
+            else "some-arm-package",
             "",
-            "some-x86-package",
         ),
     ],
 )
@@ -158,8 +170,9 @@ def test_edit_pyproject(
     cuda_version,
     cuda_suffix,
     cuda_python_requirement,
-    matrix,
+    arch,
     arch_requirement,
+    matrix,
 ):
     original_contents = dedent(
         """\
@@ -265,6 +278,9 @@ def test_edit_pyproject(
         )
 
         with patch(
+            "rapids_build_backend.impls._get_arch",
+            Mock(return_value=arch) if arch is not None else _get_arch,
+        ), patch(
             "rapids_build_backend.impls._get_cuda_version",
             Mock(return_value=cuda_version),
         ), patch(
