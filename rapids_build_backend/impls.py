@@ -1,6 +1,7 @@
 # Copyright (c) 2024, NVIDIA CORPORATION.
 
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -49,6 +50,23 @@ def _get_backend(build_backend):
             "optional dependency in your build-system.requires entry for "
             "rapids-build-backend."
         )
+
+
+@lru_cache
+def _get_arch() -> str:
+    """Get the arch of the current machine.
+
+    Returns
+    -------
+    str
+        The arch (e.g. "x86_64" or "aarch64")
+    """
+    plat = platform.machine()
+    # RAPIDS projects all use "aarch64" to indicate arm architectures,
+    # but arm some systems (like the M1/M2/M3 Macs) report "arm64"
+    if plat == "arm64":
+        return "aarch64"
+    return plat
 
 
 @lru_cache
@@ -190,6 +208,7 @@ def _edit_pyproject(config):
                 matrix = _parse_matrix(config.matrix_entry) or dict(file_config.matrix)
                 if not config.disable_cuda:
                     matrix["cuda"] = [f"{cuda_version_major}.{cuda_version_minor}"]
+                matrix["arch"] = [_get_arch()]
                 rapids_dependency_file_generator.make_dependency_files(
                     parsed_config=parsed_config,
                     file_keys=[file_key],
