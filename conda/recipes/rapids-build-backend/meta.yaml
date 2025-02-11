@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 
 {% set pyproject_data = load_file_data("pyproject.toml") %}
 {% set version = pyproject_data["project"]["version"] %}
@@ -30,7 +30,7 @@ requirements:
 
 about:
   home: {{ pyproject_data["project"]["urls"]["Homepage"] }}
-  license: {{ pyproject_data["project"]["license"]["text"] }}
+  license: {{ pyproject_data["project"]["license"] }}
   license_file: {{ pyproject_data["tool"]["setuptools"]["license-files"][0] }}
   summary: {{ pyproject_data["project"]["description"] }}
   description: |
