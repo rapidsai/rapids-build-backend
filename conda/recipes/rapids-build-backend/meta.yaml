@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 
 {% set pyproject_data = load_file_data("pyproject.toml") %}
 {% set version = pyproject_data["project"]["version"] %}
@@ -19,7 +19,6 @@ requirements:
   host:
     - pip
     - python >=3.9
-    - conda-verify
     {% for r in pyproject_data["build-system"]["requires"] %}
     - {{ r }}
     {% endfor %}
