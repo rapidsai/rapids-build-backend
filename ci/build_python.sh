@@ -3,6 +3,6 @@
 
 set -euo pipefail
 
-rapids-conda-retry mambabuild conda/recipes/rapids-build-backend
+rapids-conda-retry build conda/recipes/rapids-build-backend
 
 rapids-upload-conda-to-s3 python
