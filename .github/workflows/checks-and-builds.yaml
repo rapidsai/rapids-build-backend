@@ -36,6 +36,9 @@ jobs:
       script: "ci/build_wheel.sh"
       # Select only the build with the minimum Python version and the maximum CUDA version
       matrix_filter: '[map(select(.ARCH == "amd64")) | min_by((.PY_VER | split(".") | map(tonumber)), (.CUDA_VER | split(".") | map(-tonumber)))]'
+      wheel-name: rapids-build-backend
+      package-type: python
+      append-cuda-suffix: false
   publish-wheels:
     needs:
       - build-wheel
