@@ -22,7 +22,7 @@ jobs:
         run: "./ci/check_style.sh"
   build-conda:
     needs: check-style
-    uses: rapidsai/shared-workflows/.github/workflows/conda-python-build.yaml@branch-25.04
+    uses: rapidsai/shared-workflows/.github/workflows/conda-python-build.yaml@branch-25.06
     with:
       build_type: ${{ inputs.build_type }}
       script: "ci/build_python.sh"
@@ -30,7 +30,7 @@ jobs:
       matrix_filter: '[map(select(.ARCH == "amd64")) | min_by((.PY_VER | split(".") | map(tonumber)), (.CUDA_VER | split(".") | map(-tonumber)))]'
   build-wheel:
     needs: check-style
-    uses: rapidsai/shared-workflows/.github/workflows/wheels-build.yaml@branch-25.04
+    uses: rapidsai/shared-workflows/.github/workflows/wheels-build.yaml@branch-25.06
     with:
       build_type: ${{ inputs.build_type }}
       script: "ci/build_wheel.sh"
@@ -43,7 +43,7 @@ jobs:
     needs:
       - build-wheel
     secrets: inherit
-    uses: rapidsai/shared-workflows/.github/workflows/wheels-publish.yaml@branch-25.04
+    uses: rapidsai/shared-workflows/.github/workflows/wheels-publish.yaml@branch-25.06
     with:
       build_type: ${{ inputs.build_type }}
       package-name: rapids-build-backend
@@ -53,7 +53,7 @@ jobs:
     needs:
       - build-conda
     secrets: inherit
-    uses: rapidsai/shared-workflows/.github/workflows/conda-upload-packages.yaml@branch-25.04
+    uses: rapidsai/shared-workflows/.github/workflows/conda-upload-packages.yaml@branch-25.06
     with:
       build_type: ${{ inputs.build_type }}
     if: ${{ inputs.publish }}
