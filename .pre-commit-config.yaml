@@ -7,12 +7,12 @@ exclude: |
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
   - repo: https://github.com/rapidsai/dependency-file-generator
-    rev: v1.14.0
+    rev: v1.18.1
     hooks:
       - id: rapids-dependency-file-generator
         args: ["--clean"]
@@ -27,7 +27,7 @@ repos:
         args: ["--fix"]
       - id: ruff-format
   - repo: https://github.com/rapidsai/pre-commit-hooks
-    rev: v0.4.0
+    rev: v0.6.0
     hooks:
       - id: verify-copyright
         args: [--fix, --main-branch=main]
@@ -40,6 +40,11 @@ repos:
           "rapids_build_backend/"
         ]
         pass_filenames: false
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: ["--severity=warning"]
 
 default_language_version:
       python: python3
