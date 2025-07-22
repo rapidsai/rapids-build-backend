@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 
 import os.path
 import platform
@@ -100,9 +100,9 @@ def test_write_git_commits(
             "dependencies.yaml",
             True,
             False,
-            ("11", "5"),
-            "-cu11",
-            "cuda-python>=11.5,<11.6.dev0",
+            ("12", "1"),
+            "-cu12",
+            None,
             "x86_64",
             "some-x86-package",
             "",
@@ -112,32 +112,20 @@ def test_write_git_commits(
             "dependencies.yaml",
             True,
             False,
-            ("11", "5"),
-            "-cu11",
-            "cuda-python>=11.5,<11.6.dev0",
+            ("12", "1"),
+            "-cu12",
+            None,
             "aarch64",
             "some-arm-package",
             "",
         ),
         (
-            "python",
-            "../dependencies.yaml",
-            True,
-            False,
-            ("12", "1"),
-            "-cu12",
-            "cuda-python>=12.1,<12.2.dev0",
-            "x86_64",
-            "some-x86-package",
-            "",
-        ),
-        (
             ".",
             "dependencies.yaml",
             False,
             False,
-            ("11", "5"),
-            "-cu11",
+            ("12", "1"),
+            "-cu12",
             None,
             None,  # Test the arch detection logic
             "some-x86-package"
@@ -235,10 +223,6 @@ def test_edit_pyproject(
                             specific:
                               - output_types: [pyproject]
                                 matrices:
-                                  - matrix:
-                                      cuda: "11.5"
-                                    packages:
-                                      - cuda-python>=11.5,<11.6.dev0
                                   - matrix:
                                       cuda: "12.1"
                                     packages:

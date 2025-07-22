@@ -8,7 +8,7 @@ It is responsible for the following:
 
 - Determining the correct dependencies for the package, based on the target CUDA version and architecture
   - *by running [`rapids-dependency-file-generator`](https://github.com/rapidsai/dependency-file-generator)*
-- Modifying the package name to include a CUDA suffix (e.g. `"rmm" -> "rmm-cu11"`)
+- Modifying the package name to include a CUDA suffix (e.g. `"rmm" -> "rmm-cu12"`)
 - Updating the git commit embedded in the importable package.
 
 ## Supported builders
