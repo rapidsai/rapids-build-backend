@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 
 import glob
 import os
@@ -58,14 +58,13 @@ def _generate_wheel(env, package_dir):
     return data["Name"], build_requires, requirements, extras
 
 
-@pytest.mark.parametrize("nvcc_version", ["11", "12"])
+@pytest.mark.parametrize("nvcc_version", ["12"])
 def test_simple_setuptools(tmp_path, env, nvcc_version):
     template_args = {
         "name": "simple_setuptools",
-        "dependencies": {"cu11": ["rmm-cu11>=0.0.0a0"], "cu12": ["rmm-cu12>=0.0.0a0"]},
+        "dependencies": {"cu12": ["rmm-cu12>=0.0.0a0"]},
         "extras": {"test": {"common": ["dask-cuda==24.4.*,>=0.0.0a0"]}},
         "build_requires": {
-            "cu11": ["rmm-cu11>=0.0.0a0"],
             "cu12": ["rmm-cu12>=0.0.0a0"],
         },
         "build_backend": "setuptools.build_meta",
@@ -210,22 +209,20 @@ def test_setuptools_with_setup_requires_fails_with_informative_error(
     )
 
 
-@pytest.mark.parametrize("nvcc_version", ["11", "12"])
+@pytest.mark.parametrize("nvcc_version", ["12"])
 def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     template_args = {
         "name": "simple_scikit_build_core",
         "dependencies": {
-            "cu11": ["cupy-cuda11x>=12.0.0"],
             "cu12": ["cupy-cuda12x>=12.0.0"],
         },
-        "extras": {"jit": {"cu11": ["ptxcompiler-cu11"]}},
+        "extras": {"jit": {}},
         # having multiple >= constraints is weird, but it's here to avoid
         # https://github.com/rapidsai/rapids-build-backend/pull/40#issuecomment-2152949912
         # (by always pulling from from pypi.anaconda.org/rapidsai-wheels-nightly)
         # while still testing that rapids-build-backend preserves all the dependency
         # specifiers
         "build_requires": {
-            "cu11": ["rmm-cu11>=24.4.0,>=0.0.0a0"],
             "cu12": ["rmm-cu12>=24.4.0,>=0.0.0a0"],
         },
         "build_backend": "scikit_build_core.build",
@@ -247,7 +244,4 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     #       (i.e. that >=0.0.0a0 comes before >=24.4.0)
     assert {f"rmm-cu{nvcc_version}>=0.0.0a0,>=24.4.0"}.issubset(build_requires)
     assert requirements == {f"cupy-cuda{nvcc_version}x>=12.0.0"}
-    if nvcc_version == "11":
-        assert extras == {"jit": {"ptxcompiler-cu11"}}
-    else:
-        assert extras == {"jit": set()}
+    assert extras == {"jit": set()}

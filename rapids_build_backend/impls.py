@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 
 import os
 import platform
@@ -76,7 +76,7 @@ def _get_cuda_version():
     Returns
     -------
     str or None
-        The CUDA major version (e.g., "11")
+        The CUDA major version (e.g., "12")
     """
     nvcc_exists = subprocess.run(["which", "nvcc"], capture_output=True).returncode == 0
     if not nvcc_exists:
@@ -104,7 +104,7 @@ def _get_cuda_suffix() -> str:
     Returns
     -------
     str
-        The CUDA suffix (e.g., "-cu11") or an empty string if CUDA could not be
+        The CUDA suffix (e.g., "-cu12") or an empty string if CUDA could not be
         detected.
     """
     if (version := _get_cuda_version()) is None:

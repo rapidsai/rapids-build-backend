@@ -38,14 +38,6 @@ dependencies:
     specific:
       - output_types: [pyproject]
         matrices:
-          {% if dependencies.get("cu11", []) %}
-          - matrix:
-              cuda: "11.*"
-            packages:
-              {% for dependency in dependencies.get("cu11", []) %}
-              - "{{ dependency }}"
-              {% endfor %}
-          {% endif %}
           {% if dependencies.get("cu12", []) %}
           - matrix:
               cuda: "12.*"
@@ -68,14 +60,6 @@ dependencies:
     specific:
       - output_types: [pyproject]
         matrices:
-          {% if build_requires.get("cu11", []) %}
-          - matrix:
-              cuda: "11.*"
-            packages:
-              {% for require in build_requires.get("cu11", []) %}
-              - "{{ require }}"
-              {% endfor %}
-          {% endif %}
           {% if build_requires.get("cu12", []) %}
           - matrix:
               cuda: "12.*"
@@ -99,14 +83,6 @@ dependencies:
     specific:
       - output_types: [pyproject]
         matrices:
-          {% if deps.get("cu11", []) %}
-          - matrix:
-              cuda: "11.*"
-            packages:
-              {% for dep in deps.get("cu11", []) %}
-              - "{{ dep }}"
-              {% endfor %}
-          {% endif %}
           {% if deps.get("cu12", []) %}
           - matrix:
               cuda: "12.*"
