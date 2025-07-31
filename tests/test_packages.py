@@ -6,6 +6,7 @@ import re
 import subprocess
 import zipfile
 from email.parser import BytesParser
+from textwrap import dedent
 
 import pytest
 from conftest import generate_from_template, patch_nvcc_if_needed
@@ -39,7 +40,8 @@ def _generate_wheel(env, package_dir):
     wheel = glob.glob(str(package_dir / "*.whl"))[0]
     p = BytesParser()
     with zipfile.ZipFile(wheel, "r") as z:
-        metadata = next(f for f in z.namelist() if os.path.basename(f) == "METADATA")
+        files = z.namelist()
+        metadata = next(f for f in files if os.path.basename(f) == "METADATA")
         with z.open(metadata) as f:
             data = p.parse(f)
 
@@ -55,7 +57,7 @@ def _generate_wheel(env, package_dir):
                 extras[extra].add(req.replace(" ", ""))
             else:
                 requirements.add(req.replace(" ", ""))
-    return data["Name"], build_requires, requirements, extras
+    return data["Name"], build_requires, requirements, extras, files
 
 
 @pytest.mark.parametrize("nvcc_version", ["12"])
@@ -69,6 +71,7 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
         },
         "build_backend": "setuptools.build_meta",
         "build_backend_package": "setuptools",
+        "extra_sections": "",
     }
 
     package_dir = tmp_path / "pkg"
@@ -76,14 +79,20 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
 
     generate_from_template(package_dir, "dependencies.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
+    with open(package_dir / "simple_setuptools" / "__init__.py", "w") as f:
+        f.write("# Empty package file\n")
 
     with patch_nvcc_if_needed(nvcc_version):
-        name, build_requires, requirements, extras = _generate_wheel(env, package_dir)
+        name, build_requires, requirements, extras, files = _generate_wheel(
+            env, package_dir
+        )
 
     assert name == f"simple_setuptools-cu{nvcc_version}"
     assert {f"rmm-cu{nvcc_version}>=0.0.0a0"}.issubset(build_requires)
     assert requirements == {f"rmm-cu{nvcc_version}>=0.0.0a0"}
     assert extras == {"test": {"dask-cuda==24.4.*,>=0.0.0a0"}}
+    assert "simple_setuptools/__init__.py" in files
+    assert "simple_setuptools/GIT_COMMIT" in files
 
 
 # rapids-build-backend should support projects using setuptools whose setup.py
@@ -111,13 +120,14 @@ def test_setuptools_with_imports_in_setup_py_works(
             "",
             "setup()",
         ],
+        "extra_sections": "",
     }
     generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
     generate_from_template(package_dir, "setup.py", template_args)
 
     with patch_nvcc_if_needed(nvcc_version="85"):
-        name, build_requires, requirements, extras = _generate_wheel(
+        name, build_requires, requirements, extras, files = _generate_wheel(
             env=isolated_env, package_dir=package_dir
         )
 
@@ -147,6 +157,7 @@ def test_setuptools_with_imports_in_setup_py_fails_on_missing_imports(
             "",
             "setup()",
         ],
+        "extra_sections": "",
     }
     generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
@@ -193,6 +204,7 @@ def test_setuptools_with_setup_requires_fails_with_informative_error(
             "    setup_requires=['rapids-test-dummy'],",
             ")",
         ],
+        "extra_sections": "",
     }
     generate_from_template(package_dir, "dependencies-rbb-only.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
@@ -227,6 +239,10 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
         },
         "build_backend": "scikit_build_core.build",
         "build_backend_package": "scikit-build-core",
+        "extra_sections": dedent("""
+            [tool.scikit-build]
+            wheel.packages = ["simple_scikit_build_core"]
+            """),
     }
 
     package_dir = tmp_path / "pkg"
@@ -235,9 +251,13 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     generate_from_template(package_dir, "dependencies.yaml", template_args)
     generate_from_template(package_dir, "pyproject.toml", template_args)
     generate_from_template(package_dir, "CMakeLists.txt")
+    with open(package_dir / "simple_scikit_build_core" / "__init__.py", "w") as f:
+        f.write("# Empty package file\n")
 
     with patch_nvcc_if_needed(nvcc_version):
-        name, build_requires, requirements, extras = _generate_wheel(env, package_dir)
+        name, build_requires, requirements, extras, files = _generate_wheel(
+            env, package_dir
+        )
 
     assert name == f"simple_scikit_build_core-cu{nvcc_version}"
     # note: this is also testing that the dependency specifiers were rearranged
@@ -245,3 +265,5 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     assert {f"rmm-cu{nvcc_version}>=0.0.0a0,>=24.4.0"}.issubset(build_requires)
     assert requirements == {f"cupy-cuda{nvcc_version}x>=12.0.0"}
     assert extras == {"jit": set()}
+    assert "simple_scikit_build_core/__init__.py" in files
+    assert "simple_scikit_build_core/GIT_COMMIT" in files

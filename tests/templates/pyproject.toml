@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 
 [build-system]
 build-backend = "rapids_build_backend.build"
@@ -21,3 +21,5 @@ requires = []
 {% for flag, value in flags.items() %}
 {{ flag }} = {{ value }}
 {% endfor %}
+
+{{ extra_sections }}
