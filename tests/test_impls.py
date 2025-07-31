@@ -125,7 +125,11 @@ def test_write_git_commits(
             if not directories:
                 assert list(os.walk(".")) == [(".", [], [])]
 
-        if manifest_in_contents is not None:
+        if manifest_in_contents is None:
+            assert not os.path.exists("MANIFEST.in")
+        else:
+            with open("MANIFEST.in") as f:
+                assert f.read() == manifest_in_contents
             os.unlink("MANIFEST.in")
         for directory in directories:
             os.rmdir(directory)
