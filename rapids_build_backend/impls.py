@@ -136,7 +136,8 @@ def _write_git_commits(config, project_name: str):
     Temporarily write the git commit files for the package being built. If the
     `commit-files` config option is not specified, write to `<project_name>/GIT_COMMIT`.
 
-    Also temporarily write the files to `MANIFEST.in`.
+    Also temporarily writes 'include' rules for the files to `MANIFEST.in`, so they'll
+    be packaged into wheels built by backends that use `MANIFEST.in`.
 
     This is useful for projects that want to embed the current git commit in the package
     at build time.
