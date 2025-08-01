@@ -14,5 +14,9 @@ jobs:
     uses: ./.github/workflows/checks-and-builds.yaml
     with:
       build_type: pull-request
+      # RAPIDS tooling assumes that builds for 'build_type=branch' come from a file 'build.yaml'.
+      # checks-and-builds.yaml provides an input so other workflows in this repo can override that, to match this repo's setup.
+      # That input is required, so passing 'pr.yaml' here.
+      build_workflow_name: "pr.yaml"
       publish: false
     secrets: inherit

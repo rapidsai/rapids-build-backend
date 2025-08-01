@@ -14,5 +14,8 @@ jobs:
     uses: ./.github/workflows/checks-and-builds.yaml
     with:
       build_type: branch
+      # RAPIDS tooling assumes that builds for 'build_type=branch' come from a file 'build.yaml'.
+      # This adjusts that expectation to match the way this repo works.
+      build_workflow_name: "build-tag.yaml"
       publish: true
     secrets: inherit

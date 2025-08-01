@@ -5,6 +5,12 @@ on:
     inputs:
       build_type:
         type: string
+      build_workflow_name:
+        description: |
+          Name of a workflow file that produced artifacts to be downloaded in this run.
+          If not set (the default), artifact-handling scripts use RAPIDS-conventional defaults (like "build.yaml" when "build_type == nightly").
+        required: true
+        type: string
       publish:
         type: boolean
 
@@ -46,6 +52,7 @@ jobs:
     uses: rapidsai/shared-workflows/.github/workflows/wheels-publish.yaml@branch-25.10
     with:
       build_type: ${{ inputs.build_type }}
+      build_workflow_name: ${{ inputs.build_workflow_name }}
       package-name: rapids-build-backend
       publish_to_pypi: true
     if: ${{ inputs.publish }}
@@ -56,4 +63,5 @@ jobs:
     uses: rapidsai/shared-workflows/.github/workflows/conda-upload-packages.yaml@branch-25.10
     with:
       build_type: ${{ inputs.build_type }}
+      build_workflow_name: ${{ inputs.build_workflow_name }}
     if: ${{ inputs.publish }}
