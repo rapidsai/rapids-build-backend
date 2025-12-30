@@ -31,7 +31,7 @@ requirements:
 about:
   home: {{ pyproject_data["project"]["urls"]["Homepage"] }}
   license: {{ pyproject_data["project"]["license"] }}
-  license_file: {{ pyproject_data["tool"]["setuptools"]["license-files"][0] }}
+  license_file: {{ pyproject_data["project"]["license-files"][0] }}
   summary: {{ pyproject_data["project"]["description"] }}
   description: |
     This package contains the PEP 517 build backend adapter used by all of
