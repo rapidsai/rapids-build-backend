@@ -45,6 +45,14 @@ include = ["rapids_build_backend*"]
 [tool.mypy]
 ignore_missing_imports = true
 
+[tool.pydistcheck]
+select = [
+    "distro-too-large-compressed",
+]
+
+# PyPI hard limit is 1GiB, but try to keep this as small as possible
+max_allowed_size_compressed = '10Mi'
+
 [tool.ruff.lint]
 select = [
     # pycodestyle (errors)
