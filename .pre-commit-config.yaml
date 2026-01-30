@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION.
 # SPDX-License-Identifier: Apache-2.0
 
 exclude: |
@@ -28,7 +28,7 @@ repos:
         args: ["--fix"]
       - id: ruff-format
   - repo: https://github.com/rapidsai/pre-commit-hooks
-    rev: v1.2.1
+    rev: v1.3.3
     hooks:
       - id: verify-copyright
         args: [--fix, --spdx]
@@ -43,6 +43,10 @@ repos:
             ^[.]pre-commit-config[.]yaml$|
             dependencies[.]yaml$|
             ^tests/templates/dependencies-rbb-only[.]yaml$
+      - id: verify-pyproject-license
+        exclude: |
+          (?x)
+            ^tests/.*$
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v1.11.2'
     hooks:
