@@ -18,4 +18,8 @@ jobs:
       # This adjusts that expectation to match the way this repo works.
       build_workflow_name: "build-main.yaml"
       publish: true
-    secrets: inherit
+    secrets:
+      CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN: ${{ secrets.CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN }}
+      RAPIDSAI_PYPI_TOKEN: ${{ secrets.RAPIDSAI_PYPI_TOKEN }}
+      CONDA_RAPIDSAI_NIGHTLY_TOKEN: ${{ secrets.CONDA_RAPIDSAI_NIGHTLY_TOKEN }}
+      CONDA_RAPIDSAI_TOKEN: ${{ secrets.CONDA_RAPIDSAI_TOKEN }}

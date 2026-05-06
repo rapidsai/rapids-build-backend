@@ -1,5 +1,4 @@
 name: checks
-
 on:
   workflow_call:
     inputs:
@@ -13,7 +12,16 @@ on:
         type: string
       publish:
         type: boolean
-
+    secrets:
+      CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN:
+        required: true
+      RAPIDSAI_PYPI_TOKEN:
+        required: true
+      CONDA_RAPIDSAI_NIGHTLY_TOKEN:
+        required: true
+      CONDA_RAPIDSAI_TOKEN:
+        required: true
+permissions: {}
 jobs:
   check-style:
     runs-on: ubuntu-latest
@@ -48,7 +56,9 @@ jobs:
   publish-wheels:
     needs:
       - build-wheel
-    secrets: inherit
+    secrets:
+      CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN: ${{ secrets.CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN }}
+      RAPIDSAI_PYPI_TOKEN: ${{ secrets.RAPIDSAI_PYPI_TOKEN }}
     uses: rapidsai/shared-workflows/.github/workflows/wheels-publish.yaml@main
     with:
       build_type: ${{ inputs.build_type }}
@@ -59,7 +69,9 @@ jobs:
   publish-conda:
     needs:
       - build-conda
-    secrets: inherit
+    secrets:
+      CONDA_RAPIDSAI_NIGHTLY_TOKEN: ${{ secrets.CONDA_RAPIDSAI_NIGHTLY_TOKEN }}
+      CONDA_RAPIDSAI_TOKEN: ${{ secrets.CONDA_RAPIDSAI_TOKEN }}
     uses: rapidsai/shared-workflows/.github/workflows/conda-upload-packages.yaml@main
     with:
       build_type: ${{ inputs.build_type }}
