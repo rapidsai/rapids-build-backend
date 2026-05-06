@@ -1,5 +1,4 @@
 name: checks
-
 on:
   workflow_call:
     inputs:
@@ -13,17 +12,27 @@ on:
         type: string
       publish:
         type: boolean
-
+    secrets:
+      CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN:
+        required: true
+      RAPIDSAI_PYPI_TOKEN:
+        required: true
+      CONDA_RAPIDSAI_NIGHTLY_TOKEN:
+        required: true
+      CONDA_RAPIDSAI_TOKEN:
+        required: true
+permissions: {}
 jobs:
   check-style:
     runs-on: ubuntu-latest
     container:
-      image: rapidsai/ci-conda:latest
+      image: rapidsai/ci-conda:latest # zizmor: ignore[unpinned-images]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Check style
         run: "./ci/check_style.sh"
   build-conda:
@@ -34,6 +43,12 @@ jobs:
       script: "ci/build_python.sh"
       # Select only the build with the minimum Python version and the maximum CUDA version
       matrix_filter: '[map(select(.ARCH == "amd64")) | min_by((.PY_VER | split(".") | map(tonumber)), (.CUDA_VER | split(".") | map(-tonumber)))]'
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      packages: read
+      pull-requests: read
   build-wheel:
     needs: check-style
     uses: rapidsai/shared-workflows/.github/workflows/wheels-build.yaml@main
@@ -45,10 +60,18 @@ jobs:
       package-name: rapids-build-backend
       package-type: python
       append-cuda-suffix: false
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      packages: read
+      pull-requests: read
   publish-wheels:
     needs:
       - build-wheel
-    secrets: inherit
+    secrets:
+      CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN: ${{ secrets.CONDA_RAPIDSAI_WHEELS_NIGHTLY_TOKEN }}
+      RAPIDSAI_PYPI_TOKEN: ${{ secrets.RAPIDSAI_PYPI_TOKEN }}
     uses: rapidsai/shared-workflows/.github/workflows/wheels-publish.yaml@main
     with:
       build_type: ${{ inputs.build_type }}
@@ -56,12 +79,26 @@ jobs:
       package-name: rapids-build-backend
       publish_to_pypi: true
     if: ${{ inputs.publish }}
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      packages: read
+      pull-requests: read
   publish-conda:
     needs:
       - build-conda
-    secrets: inherit
+    secrets:
+      CONDA_RAPIDSAI_NIGHTLY_TOKEN: ${{ secrets.CONDA_RAPIDSAI_NIGHTLY_TOKEN }}
+      CONDA_RAPIDSAI_TOKEN: ${{ secrets.CONDA_RAPIDSAI_TOKEN }}
     uses: rapidsai/shared-workflows/.github/workflows/conda-upload-packages.yaml@main
     with:
       build_type: ${{ inputs.build_type }}
       build_workflow_name: ${{ inputs.build_workflow_name }}
     if: ${{ inputs.publish }}
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      packages: read
+      pull-requests: read
