@@ -26,12 +26,13 @@ jobs:
   check-style:
     runs-on: ubuntu-latest
     container:
-      image: rapidsai/ci-conda:latest
+      image: rapidsai/ci-conda:latest # zizmor: ignore[unpinned-images]
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Check style
         run: "./ci/check_style.sh"
   build-conda:
