@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION.
 # SPDX-License-Identifier: Apache-2.0
 
 import os.path
@@ -317,15 +317,19 @@ def test_edit_pyproject(
             matrix_entry=matrix,
         )
 
-        with patch(
-            "rapids_build_backend.impls._get_arch",
-            Mock(return_value=arch) if arch is not None else _get_arch,
-        ), patch(
-            "rapids_build_backend.impls._get_cuda_version",
-            Mock(return_value=cuda_version),
-        ), patch(
-            "rapids_build_backend.impls._get_cuda_suffix",
-            _get_cuda_suffix.__wrapped__,
+        with (
+            patch(
+                "rapids_build_backend.impls._get_arch",
+                Mock(return_value=arch) if arch is not None else _get_arch,
+            ),
+            patch(
+                "rapids_build_backend.impls._get_cuda_version",
+                Mock(return_value=cuda_version),
+            ),
+            patch(
+                "rapids_build_backend.impls._get_cuda_suffix",
+                _get_cuda_suffix.__wrapped__,
+            ),
         ):
             if write_dependencies_file:
                 with _edit_pyproject(config):

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION.
 # SPDX-License-Identifier: Apache-2.0
 
 import os
@@ -20,8 +20,8 @@ from .config import Config
 
 
 def _remove_rapidsai_from_config(
-    config_settings: typing.Union[dict[str, typing.Any], None],
-) -> typing.Union[dict[str, typing.Any], None]:
+    config_settings: dict[str, typing.Any] | None,
+) -> dict[str, typing.Any] | None:
     """Filter out settings that begin with ``rapidsai.`` to be passed down to the
     underlying backend, because some backends get confused if you pass them options that
     they don't recognize.
@@ -114,7 +114,7 @@ def _get_cuda_suffix() -> str:
 
 
 @lru_cache
-def _get_git_commit() -> typing.Union[str, None]:
+def _get_git_commit() -> str | None:
     """Get the current git commit.
 
     Returns None if git is not in the PATH or if it fails to find the commit.
