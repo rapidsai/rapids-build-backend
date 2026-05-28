@@ -12,6 +12,7 @@ requires = [
 name = "rapids-build-backend"
 version = "0.4.1"
 description = "Custom PEP517 builder for RAPIDS"
+requires-python = ">=3.10"
 dependencies = [
     "PyYAML",
     "packaging",
