@@ -73,7 +73,7 @@ For example:
 [build-system]
 build-backend = "rapids_build_backend.build"
 requires = [
-    "rapids-build-backend>=0.3.0,<0.4.0dev0",
+    "rapids-build-backend>=0.3.0,<0.5.0dev0",
     "setuptools>=64.0.0",
 ]
 ```

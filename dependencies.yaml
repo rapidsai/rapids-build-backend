@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 # Dependency list for https://github.com/rapidsai/dependency-file-generator
@@ -53,15 +53,12 @@ dependencies:
     common:
       - output_types: [conda, requirements]
         packages:
+          - identify>=2.6.13
           - pre-commit
   py_version:
     specific:
       - output_types: conda
         matrices:
-          - matrix:
-              py: "3.9"
-            packages:
-              - python=3.9
           - matrix:
               py: "3.10"
             packages:
@@ -72,7 +69,7 @@ dependencies:
               - python=3.11
           - matrix:
             packages:
-              - python>=3.9,<3.12
+              - python>=3.10,<3.12
   run:
     common:
       - output_types: [conda, requirements, pyproject]
