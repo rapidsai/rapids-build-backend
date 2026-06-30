@@ -8,6 +8,17 @@ concurrency:
   cancel-in-progress: true
 permissions: {}
 jobs:
+  # Please keep pr-builder as the top job here
+  pr-builder:
+    needs:
+      - run-checks
+    permissions:
+      checks: write
+      pull-requests: write
+    uses: rapidsai/shared-workflows/.github/workflows/pr-builder.yaml@main # zizmor: ignore[unpinned-uses]
+    if: always()
+    with:
+      needs: ${{ toJSON(needs) }}
   run-checks:
     uses: ./.github/workflows/checks-and-builds.yaml
     permissions:
