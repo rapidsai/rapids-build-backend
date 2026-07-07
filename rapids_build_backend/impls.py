@@ -34,9 +34,16 @@ def _remove_rapidsai_from_config(
 def _parse_matrix(matrix):
     if not matrix:
         return None
-    return {
-        key: [value] for key, value in (item.split("=") for item in matrix.split(";"))
-    }
+    result = {}
+    for item in matrix.split(";"):
+        parts = item.split("=")
+        if len(parts) != 2 or not parts[0]:
+            raise ValueError(
+                f"invalid matrix-entry item {item!r}: expected 'key=value'"
+            )
+        key, value = parts
+        result[key] = [value]
+    return result
 
 
 @lru_cache
