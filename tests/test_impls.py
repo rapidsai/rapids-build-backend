@@ -14,6 +14,7 @@ from rapids_build_backend.impls import (
     _edit_pyproject,
     _get_arch,
     _get_cuda_suffix,
+    _parse_matrix,
     _remove_rapidsai_from_config,
     _write_git_commits,
 )
@@ -438,3 +439,34 @@ def test_check_setup_py_fails_when_setup_requires_is_passed(setup_py_content):
         ValueError, match=r"Detected use of 'setup_requires' in a setup\.py file"
     ):
         _check_setup_py(setup_py_content)
+
+
+@pytest.mark.parametrize(
+    "matrix_input",
+    [
+        "arch",
+        "cuda=12;arch",
+        "a=b=c",
+        "=v",
+        "a=b;",
+    ],
+)
+def test_parse_matrix_invalid(matrix_input):
+    with pytest.raises(ValueError, match="invalid matrix-entry item"):
+        _parse_matrix(matrix_input)
+
+
+@pytest.mark.parametrize(
+    ("matrix_input", "expected"),
+    [
+        ("arch=aarch64", {"arch": ["aarch64"]}),
+        ("arch=x86_64;cuda=12.1", {"arch": ["x86_64"], "cuda": ["12.1"]}),
+    ],
+)
+def test_parse_matrix_valid(matrix_input, expected):
+    assert _parse_matrix(matrix_input) == expected
+
+
+@pytest.mark.parametrize("matrix_input", ["", None])
+def test_parse_matrix_empty(matrix_input):
+    assert _parse_matrix(matrix_input) is None
