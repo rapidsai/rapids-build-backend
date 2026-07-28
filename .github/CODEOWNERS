@@ -4,6 +4,7 @@
 /.github/                @rapidsai/ci-codeowners
 /ci/                     @rapidsai/ci-codeowners
 /.pre-commit-config.yaml @rapidsai/ci-codeowners
+/.yamllint.yaml          @rapidsai/ci-codeowners
 
 #packaging code owners
 /.devcontainer/    @rapidsai/packaging-codeowners
