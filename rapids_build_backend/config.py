@@ -1,6 +1,7 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 import os
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
         str, tuple[config_val_type | config_val_callable, bool, bool]
     ]
 
+logger = logging.getLogger(__name__)
+
 
 class Config:
     """Manage the build configuration for the project."""
@@ -32,6 +35,7 @@ class Config:
         "commit-files": (None, False, False),
         "dependencies-file": ("dependencies.yaml", False, True),
         "disable-cuda": (False, False, True),
+        "log-level": ("WARNING", False, True),
         "matrix-entry": ("", False, True),
         "requires": (lambda: [], False, False),
     }
@@ -43,6 +47,13 @@ class Config:
             self.config = pyproject_data["tool"]["rapids-build-backend"]
         except KeyError as e:
             raise RuntimeError("No rapids-build-backend table in pyproject.toml") from e
+        self._logged_options: set[str] = set()
+
+    def _log_value(self, config_name, value, source):
+        """Log, once per option, the value used and where it came from."""
+        if config_name not in self._logged_options:
+            self._logged_options.add(config_name)
+            logger.debug("%s = %r (%s)", config_name, value, source)
 
     def __getattr__(self, name):
         config_name = name.replace("_", "-")
@@ -66,20 +77,33 @@ class Config:
                             raise ValueError(
                                 f"{env_var} must be 'true' or 'false', not {str_val}"
                             )
-                        return str_val == "true"
-                    return os.environ[env_var]
+                        value = str_val == "true"
+                    else:
+                        value = os.environ[env_var]
+                    self._log_value(
+                        config_name, value, f"from environment variable {env_var}"
+                    )
+                    return value
 
                 if (config_key := f"rapidsai.{config_name}") in self.config_settings:
                     if isinstance(default_value, bool):
-                        return self.config_settings[config_key] == "true"
-                    return self.config_settings[config_key]
+                        value = self.config_settings[config_key] == "true"
+                    else:
+                        value = self.config_settings[config_key]
+                    self._log_value(
+                        config_name, value, f"from config setting {config_key}"
+                    )
+                    return value
 
             try:
-                return self.config[config_name]
+                value = self.config[config_name]
             except KeyError:
                 if not required:
+                    self._log_value(config_name, default_value, "default")
                     return default_value
 
                 raise AttributeError(f"Config is missing required attribute '{name}'")
+            self._log_value(config_name, value, "from pyproject.toml")
+            return value
         else:
             raise AttributeError(f"Attempted to access unknown option '{name}'")

@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 import os.path
 import platform
 from contextlib import contextmanager
@@ -17,6 +18,7 @@ from rapids_build_backend.impls import (
     _parse_matrix,
     _remove_rapidsai_from_config,
     _write_git_commits,
+    get_requires_for_build_sdist,
 )
 
 
@@ -470,3 +472,121 @@ def test_parse_matrix_valid(matrix_input, expected):
 @pytest.mark.parametrize("matrix_input", ["", None])
 def test_parse_matrix_empty(matrix_input):
     assert _parse_matrix(matrix_input) is None
+
+
+@pytest.fixture
+def restore_rbb_logger():
+    """Undo any changes the hooks make to the package logger during a test."""
+    rbb_logger = logging.getLogger("rapids_build_backend")
+    level, handlers = rbb_logger.level, list(rbb_logger.handlers)
+    yield
+    rbb_logger.setLevel(level)
+    rbb_logger.handlers[:] = handlers
+
+
+def _setup_log_level_project(project_dir, log_level=None):
+    """Write a minimal setuptools project with a dependencies.yaml.
+
+    Tests using this patch out the wrapped backend, so setuptools isn't needed.
+    """
+    log_level_line = f'log-level = "{log_level}"' if log_level is not None else ""
+    with open(project_dir / "pyproject.toml", "w") as f:
+        f.write(
+            dedent(
+                f"""\
+                [project]
+                name = "test-project"
+                version = "0.0.1"
+                dependencies = []
+
+                [build-system]
+                build-backend = "rapids_build_backend.build"
+                requires = []
+
+                [tool.rapids-build-backend]
+                build-backend = "setuptools.build_meta"
+                commit-files = []
+                disable-cuda = true
+                {log_level_line}
+                """
+            )
+        )
+    with open(project_dir / "dependencies.yaml", "w") as f:
+        f.write(
+            dedent(
+                """\
+                files:
+                  project:
+                    output: pyproject
+                    includes:
+                      - run
+                    pyproject_dir: .
+                    extras:
+                      table: project
+                  conda:
+                    output: conda
+                    includes:
+                      - run
+                dependencies:
+                  run:
+                    common:
+                      - output_types: [conda, pyproject]
+                        packages:
+                          - tomli
+                """
+            )
+        )
+
+
+@pytest.mark.parametrize("source", ["pyproject", "config_settings", "env"])
+@patch("rapids_build_backend.impls._get_backend", Mock(return_value=object()))
+def test_log_level_debug(tmp_path, caplog, monkeypatch, restore_rbb_logger, source):
+    config_settings = {}
+    if source == "pyproject":
+        _setup_log_level_project(tmp_path, log_level="DEBUG")
+    else:
+        _setup_log_level_project(tmp_path)
+        if source == "config_settings":
+            config_settings["rapidsai.log-level"] = "DEBUG"
+        else:
+            monkeypatch.setenv("RAPIDS_LOG_LEVEL", "debug")
+
+    with set_cwd(tmp_path):
+        requires = get_requires_for_build_sdist(config_settings)
+
+    assert requires == []
+    messages = [
+        r.getMessage()
+        for r in caplog.records
+        if r.name.startswith("rapids_build_backend")
+    ]
+    assert "disable-cuda = True (from pyproject.toml)" in messages
+    assert "disable-cuda is true, ignoring the CUDA version" in messages
+    assert "Loaded dependencies file 'dependencies.yaml'" in messages
+    assert "Skipping file key 'conda': it has no pyproject output" in messages
+    assert (
+        "Generating pyproject.toml dependencies for file key 'project' "
+        "with matrix {'arch': ['" + _get_arch() + "']}"
+    ) in messages
+    assert "commit-files is empty, not writing any git commit files" in messages
+    assert "Build requirements: []" in messages
+
+
+@patch("rapids_build_backend.impls._get_backend", Mock(return_value=object()))
+def test_log_level_default_is_quiet(tmp_path, caplog, restore_rbb_logger):
+    _setup_log_level_project(tmp_path)
+    with set_cwd(tmp_path):
+        get_requires_for_build_sdist({})
+    assert not [r for r in caplog.records if r.name.startswith("rapids_build_backend")]
+
+
+@pytest.mark.parametrize(
+    "config_settings",
+    [{"rapidsai.log-level": "LOUD"}, {"rapidsai.log-level": "10"}],
+)
+@patch("rapids_build_backend.impls._get_backend", Mock(return_value=object()))
+def test_log_level_invalid(tmp_path, restore_rbb_logger, config_settings):
+    _setup_log_level_project(tmp_path)
+    with set_cwd(tmp_path):
+        with pytest.raises(ValueError, match="Invalid log-level"):
+            get_requires_for_build_sdist(config_settings)

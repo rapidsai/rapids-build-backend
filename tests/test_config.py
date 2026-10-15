@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 import os
@@ -32,6 +32,8 @@ def setup_config_project(tmp_path, flag, config_value):
         ("disable-cuda", "true", True),
         ("disable-cuda", "false", False),
         ("disable-cuda", None, False),
+        ("log-level", '"DEBUG"', "DEBUG"),
+        ("log-level", None, "WARNING"),
     ],
 )
 def test_config(tmp_path, flag, config_value, expected):
@@ -75,3 +77,15 @@ def test_config_config_settings(tmp_path, flag, config_value, expected):
         {f"rapidsai.{flag}": config_value},
     )
     assert getattr(config, flag.replace("-", "_")) == expected
+
+
+def test_config_log_level_precedence(tmp_path, monkeypatch):
+    package_dir = setup_config_project(tmp_path, "log-level", '"INFO"')
+    monkeypatch.delenv("RAPIDS_LOG_LEVEL", raising=False)
+    assert Config(package_dir).log_level == "INFO"
+
+    config = Config(package_dir, {"rapidsai.log-level": "ERROR"})
+    assert config.log_level == "ERROR"
+
+    monkeypatch.setenv("RAPIDS_LOG_LEVEL", "DEBUG")
+    assert config.log_level == "DEBUG"
