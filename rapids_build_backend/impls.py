@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 import os
 import platform
 import re
@@ -17,6 +18,34 @@ import tomlkit
 
 from . import utils
 from .config import Config
+
+logger = logging.getLogger(__name__)
+
+_LOG_LEVELS = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
+
+# Created once so that repeated hook calls in one process don't add duplicate handlers.
+_log_handler = logging.StreamHandler()
+_log_handler.setFormatter(
+    logging.Formatter("rapids-build-backend: %(levelname)s: %(message)s")
+)
+
+
+def _setup_logging(config) -> None:
+    """Set the verbosity of rapids-build-backend's own log messages.
+
+    The level comes from the ``log-level`` config option, so it can be set in
+    pyproject.toml, with ``-C rapidsai.log-level=...``, or with ``RAPIDS_LOG_LEVEL``.
+    """
+    log_level = str(config.log_level).upper()
+    if log_level not in _LOG_LEVELS:
+        raise ValueError(
+            f"Invalid log-level {config.log_level!r}. "
+            f"Expected one of: {', '.join(_LOG_LEVELS)}."
+        )
+    package_logger = logging.getLogger("rapids_build_backend")
+    package_logger.setLevel(log_level)
+    if _log_handler not in package_logger.handlers:
+        package_logger.addHandler(_log_handler)
 
 
 def _remove_rapidsai_from_config(
@@ -49,6 +78,7 @@ def _parse_matrix(matrix):
 @lru_cache
 def _get_backend(build_backend):
     """Get the wrapped build backend specified in pyproject.toml."""
+    logger.debug("Importing wrapped build backend '%s'", build_backend)
     try:
         return import_module(build_backend)
     except ImportError:
@@ -102,6 +132,7 @@ def _get_cuda_version():
     match = re.search(r"release (\d+)\.(\d+)", output_lines[3])
     if match is None:
         raise ValueError("Failed to parse CUDA version from nvcc output.")
+    logger.debug("Detected CUDA version %s.%s from nvcc", *match.groups())
     return match.groups()
 
 
@@ -155,6 +186,13 @@ def _write_git_commits(config, project_name: str):
         commit_files = [os.path.join(project_name.replace("-", "_"), "GIT_COMMIT")]
     commit = _get_git_commit() if commit_files else None
 
+    if not commit_files:
+        logger.debug("commit-files is empty, not writing any git commit files")
+    elif commit is None:
+        logger.debug("Could not determine the git commit, not writing %s", commit_files)
+    else:
+        logger.debug("Writing git commit %s to %s", commit, commit_files)
+
     if commit is not None:
         for commit_file in commit_files:
             with open(commit_file, "w") as f:
@@ -200,6 +238,8 @@ def _edit_pyproject(config):
 
     if not config.disable_cuda:
         cuda_version_major, cuda_version_minor = _get_cuda_version()
+    else:
+        logger.debug("disable-cuda is true, ignoring the CUDA version")
 
     # "dependencies.yaml" might not exist in sdists and wouldn't need to... so don't
     # raise an exception if that file can't be found when this runs
@@ -207,6 +247,7 @@ def _edit_pyproject(config):
         parsed_config = rapids_dependency_file_generator.load_config_from_file(
             config.dependencies_file
         )
+        logger.debug("Loaded dependencies file '%s'", config.dependencies_file)
     except FileNotFoundError:
         msg = (
             f"File not found: '{config.dependencies_file}'. If you want "
@@ -224,6 +265,9 @@ def _edit_pyproject(config):
                     rapids_dependency_file_generator.Output.PYPROJECT
                     not in file_config.output
                 ):
+                    logger.debug(
+                        "Skipping file key '%s': it has no pyproject output", file_key
+                    )
                     continue
                 pyproject_dir = os.path.join(
                     os.path.dirname(config.dependencies_file),
@@ -233,11 +277,23 @@ def _edit_pyproject(config):
                     os.path.exists(pyproject_dir)
                     and os.path.samefile(pyproject_dir, ".")
                 ):
+                    logger.debug(
+                        "Skipping file key '%s': its pyproject_dir '%s' is not "
+                        "the directory being built",
+                        file_key,
+                        pyproject_dir,
+                    )
                     continue
                 matrix = _parse_matrix(config.matrix_entry) or dict(file_config.matrix)
                 if not config.disable_cuda:
                     matrix["cuda"] = [f"{cuda_version_major}.{cuda_version_minor}"]
                 matrix["arch"] = [_get_arch()]
+                logger.debug(
+                    "Generating pyproject.toml dependencies for file key '%s' "
+                    "with matrix %s",
+                    file_key,
+                    matrix,
+                )
                 rapids_dependency_file_generator.make_dependency_files(
                     parsed_config=parsed_config,
                     file_keys=[file_key],
@@ -249,7 +305,11 @@ def _edit_pyproject(config):
         if not config.disable_cuda:
             pyproject = utils._get_pyproject()
             project_data = pyproject["project"]
+            old_name = str(project_data["name"])
             project_data["name"] += _get_cuda_suffix()
+            logger.debug(
+                "Renamed project '%s' to '%s'", old_name, str(project_data["name"])
+            )
             with open(pyproject_file, "w") as f:
                 tomlkit.dump(pyproject, f)
         yield
@@ -300,6 +360,7 @@ def _check_setup_py(setup_py_contents: str) -> None:
 # (the actual build backend, which conditionally imports these functions).
 def get_requires_for_build_wheel(config_settings):
     config = Config(config_settings=config_settings)
+    _setup_logging(config)
     pyproject = utils._get_pyproject()
     project_name = pyproject["project"]["name"]
     with _edit_pyproject(config), _write_git_commits(config, project_name):
@@ -329,11 +390,13 @@ def get_requires_for_build_wheel(config_settings):
                     )
                 )
 
+        logger.debug("Build requirements: %s", requires)
         return requires
 
 
 def get_requires_for_build_sdist(config_settings):
     config = Config(config_settings=config_settings)
+    _setup_logging(config)
     pyproject = utils._get_pyproject()
     project_name = pyproject["project"]["name"]
     with _edit_pyproject(config), _write_git_commits(config, project_name):
@@ -354,11 +417,13 @@ def get_requires_for_build_sdist(config_settings):
                     )
                 )
 
+        logger.debug("Build requirements: %s", requires)
         return requires
 
 
 def get_requires_for_build_editable(config_settings):
     config = Config(config_settings=config_settings)
+    _setup_logging(config)
     with _edit_pyproject(config):
         # Reload the config for a possibly updated tool.rapids-build-backend.requires
         reloaded_config = Config(config_settings=config_settings)
@@ -377,11 +442,13 @@ def get_requires_for_build_editable(config_settings):
                     )
                 )
 
+        logger.debug("Build requirements: %s", requires)
         return requires
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
+    _setup_logging(config)
     pyproject = utils._get_pyproject()
     project_name = pyproject["project"]["name"]
     with _edit_pyproject(config), _write_git_commits(config, project_name):
@@ -394,6 +461,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
 def build_sdist(sdist_directory, config_settings=None):
     config = Config(config_settings=config_settings)
+    _setup_logging(config)
     pyproject = utils._get_pyproject()
     project_name = pyproject["project"]["name"]
     with _edit_pyproject(config), _write_git_commits(config, project_name):
@@ -404,6 +472,7 @@ def build_sdist(sdist_directory, config_settings=None):
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     config = Config(config_settings=config_settings)
+    _setup_logging(config)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).build_editable(
             wheel_directory,
@@ -414,6 +483,7 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
 
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
     config = Config(config_settings=config_settings)
+    _setup_logging(config)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).prepare_metadata_for_build_wheel(
             metadata_directory, _remove_rapidsai_from_config(config_settings)
@@ -422,6 +492,7 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
 
 def prepare_metadata_for_build_editable(metadata_directory, config_settings=None):
     config = Config(config_settings=config_settings)
+    _setup_logging(config)
     with _edit_pyproject(config):
         return _get_backend(config.build_backend).prepare_metadata_for_build_editable(
             metadata_directory, _remove_rapidsai_from_config(config_settings)

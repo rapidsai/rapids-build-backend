@@ -30,6 +30,7 @@ Any option without a default is required.
 | `commit-files`        | List of files in which to write the git commit hash                                              | list[str]      | ["<project_name>/GIT_COMMIT"] | N                             |
 | `dependencies-file`   | The path to the `dependencies.yaml` file to use                                                  | string         | "dependencies.yaml"           | Y                             |
 | `disable-cuda`        | If true, CUDA version in build environment is ignored when setting package name and dependencies | bool           | false                         | Y                             |
+| `log-level`           | Log level for messages from rapids-build-backend: DEBUG, INFO, WARNING, ERROR or CRITICAL        | string         | "WARNING"                     | Y                             |
 | `matrix-entry`        | A `;`-separated list of `=`-delimited key/value pairs                                            | string         | ""                            | Y                             |
 | `requires`            | List of build requirements (in addition to `build-system.requires`)                              | list[str]      | []                            | N                             |
 
@@ -40,6 +41,18 @@ This configuration can be provided via the following mechanisms:
    - *(prefixed with `rapidsai.`, e.g. `pip wheel -C rapidsai.disable=cuda=true .`)*
 * environment variables
     - *(prefixed with `RAPIDS_`, e.g. `RAPIDS_DISABLE_CUDA=true pip wheel .`)*
+
+## Debugging
+
+To see what `rapids-build-backend` is doing (which config values it used, which `dependencies.yaml` file keys it applied or skipped, the matrix it passed to `rapids-dependency-file-generator`, and the final list of build requirements), set `log-level` to `DEBUG`:
+
+```shell
+RAPIDS_LOG_LEVEL=DEBUG pip wheel -v .
+# or
+pip wheel -v -C rapidsai.log-level=DEBUG .
+```
+
+`pip` only shows output from the build backend when run with `-v`.
 
 ## `setuptools` support
 
