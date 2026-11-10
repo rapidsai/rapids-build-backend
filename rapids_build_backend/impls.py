@@ -86,16 +86,13 @@ def _get_cuda_version():
     str or None
         The CUDA major version (e.g., "12")
     """
-    nvcc_exists = subprocess.run(["which", "nvcc"], capture_output=True).returncode == 0
-    if not nvcc_exists:
+    nvcc = shutil.which("nvcc")
+    if nvcc is None:
         raise ValueError(
             "Could not determine the CUDA version. Make sure nvcc is in your PATH."
         )
 
-    try:
-        process_output = subprocess.run(["nvcc", "--version"], capture_output=True)
-    except subprocess.CalledProcessError as e:
-        raise ValueError("Failed to get version from nvcc.") from e
+    process_output = subprocess.run([nvcc, "--version"], capture_output=True)
 
     output_lines = process_output.stdout.decode().splitlines()
 
@@ -126,15 +123,10 @@ def _get_git_commit() -> str | None:
 
     Returns None if git is not in the PATH or if it fails to find the commit.
     """
-    git_exists = subprocess.run(["which", "git"], capture_output=True).returncode == 0
-    if git_exists:
-        try:
-            process_output = subprocess.run(
-                ["git", "rev-parse", "HEAD"], capture_output=True
-            )
-            return process_output.stdout.decode().strip()
-        except subprocess.CalledProcessError:
-            pass
+    git = shutil.which("git")
+    if git is not None:
+        process_output = subprocess.run([git, "rev-parse", "HEAD"], capture_output=True)
+        return process_output.stdout.decode().strip()
     return None
 
 

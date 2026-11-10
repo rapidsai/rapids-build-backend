@@ -3,6 +3,7 @@
 
 import os.path
 import platform
+import sys
 from contextlib import contextmanager
 from textwrap import dedent
 from unittest.mock import Mock, patch
@@ -14,6 +15,8 @@ from rapids_build_backend.impls import (
     _edit_pyproject,
     _get_arch,
     _get_cuda_suffix,
+    _get_cuda_version,
+    _get_git_commit,
     _parse_matrix,
     _remove_rapidsai_from_config,
     _write_git_commits,
@@ -28,6 +31,47 @@ def set_cwd(cwd):
         yield
     finally:
         os.chdir(old_cwd)
+
+
+def _make_executable(directory, name, stdout):
+    """Write a fake executable that prints ``stdout``, runnable without a shell PATH."""
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.join(directory, name)
+    with open(path, "w") as f:
+        f.write(f"#!{sys.executable}\nprint({stdout!r})\n")
+    os.chmod(path, 0o755)
+    return path
+
+
+def test_get_cuda_version_does_not_need_which(tmp_path, monkeypatch):
+    # PATH holds only nvcc, so there is no 'which' executable to call.
+    bin_dir = tmp_path / "bin"
+    _make_executable(
+        bin_dir,
+        "nvcc",
+        "\n\n\nCuda compilation tools, release 12.4, V12.4.131",
+    )
+    monkeypatch.setenv("PATH", str(bin_dir))
+    assert _get_cuda_version.__wrapped__() == ("12", "4")
+
+
+def test_get_cuda_version_nvcc_not_found(tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", str(tmp_path))
+    with pytest.raises(ValueError, match="Make sure nvcc is in your PATH"):
+        _get_cuda_version.__wrapped__()
+
+
+def test_get_git_commit_does_not_need_which(tmp_path, monkeypatch):
+    # PATH holds only git, so there is no 'which' executable to call.
+    bin_dir = tmp_path / "bin"
+    _make_executable(bin_dir, "git", "abc123")
+    monkeypatch.setenv("PATH", str(bin_dir))
+    assert _get_git_commit.__wrapped__() == "abc123"
+
+
+def test_get_git_commit_git_not_found(tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", str(tmp_path))
+    assert _get_git_commit.__wrapped__() is None
 
 
 def test_remove_rapidsai_from_config():
