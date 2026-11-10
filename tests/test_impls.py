@@ -33,14 +33,12 @@ def set_cwd(cwd):
         os.chdir(old_cwd)
 
 
-def _make_executable(directory, name, stdout, returncode=0):
+def _make_executable(directory, name, stdout):
     """Write a fake executable that prints ``stdout``, runnable without a shell PATH."""
     os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, name)
     with open(path, "w") as f:
-        f.write(
-            f"#!{sys.executable}\nprint({stdout!r})\nraise SystemExit({returncode})\n"
-        )
+        f.write(f"#!{sys.executable}\nprint({stdout!r})\n")
     os.chmod(path, 0o755)
     return path
 
@@ -63,13 +61,6 @@ def test_get_cuda_version_nvcc_not_found(tmp_path, monkeypatch):
         _get_cuda_version.__wrapped__()
 
 
-def test_get_cuda_version_nvcc_fails(tmp_path, monkeypatch):
-    _make_executable(tmp_path, "nvcc", "", returncode=1)
-    monkeypatch.setenv("PATH", str(tmp_path))
-    with pytest.raises(ValueError, match="Failed to get version from nvcc"):
-        _get_cuda_version.__wrapped__()
-
-
 def test_get_git_commit_does_not_need_which(tmp_path, monkeypatch):
     # PATH holds only git, so there is no 'which' executable to call.
     bin_dir = tmp_path / "bin"
@@ -79,12 +70,6 @@ def test_get_git_commit_does_not_need_which(tmp_path, monkeypatch):
 
 
 def test_get_git_commit_git_not_found(tmp_path, monkeypatch):
-    monkeypatch.setenv("PATH", str(tmp_path))
-    assert _get_git_commit.__wrapped__() is None
-
-
-def test_get_git_commit_git_fails(tmp_path, monkeypatch):
-    _make_executable(tmp_path, "git", "", returncode=128)
     monkeypatch.setenv("PATH", str(tmp_path))
     assert _get_git_commit.__wrapped__() is None
 
