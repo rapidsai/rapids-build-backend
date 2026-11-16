@@ -13,6 +13,23 @@ import pytest
 from conftest import generate_from_template, patch_nvcc_if_needed
 
 
+def _init_git_repo(package_dir):
+    """Commit the package to a new git repository and return the commit hash."""
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", *args],
+            cwd=package_dir,
+            check=True,
+            capture_output=True,
+        )
+
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "--no-gpg-sign", "-m", "test")
+    return git("rev-parse", "HEAD").stdout.decode().strip()
+
+
 def _generate_wheel(env, package_dir):
     """Produce a wheel and extract its metadata for testing."""
     output = env.wheel(str(package_dir), "-v")
@@ -41,7 +58,7 @@ def _generate_wheel(env, package_dir):
     wheel = glob.glob(str(package_dir / "*.whl"))[0]
     p = BytesParser()
     with zipfile.ZipFile(wheel, "r") as z:
-        files = z.namelist()
+        files = {f: z.read(f) for f in z.namelist()}
         metadata = next(f for f in files if os.path.basename(f) == "METADATA")
         with z.open(metadata) as f:
             data = p.parse(f)
@@ -82,6 +99,7 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
     generate_from_template(package_dir, "pyproject.toml", template_args)
     with open(package_dir / "simple_setuptools" / "__init__.py", "w") as f:
         f.write("# Empty package file\n")
+    commit = _init_git_repo(package_dir)
 
     with patch_nvcc_if_needed(nvcc_version):
         name, build_requires, requirements, extras, files = _generate_wheel(
@@ -93,7 +111,7 @@ def test_simple_setuptools(tmp_path, env, nvcc_version):
     assert requirements == {f"rmm-cu{nvcc_version}>=0.0.0a0"}
     assert extras == {"test": {"dask-cuda==24.4.*,>=0.0.0a0"}}
     assert "simple_setuptools/__init__.py" in files
-    assert "simple_setuptools/GIT_COMMIT" in files
+    assert files["simple_setuptools/GIT_COMMIT"] == f"{commit}\n".encode()
 
 
 # rapids-build-backend should support projects using setuptools whose setup.py
@@ -254,6 +272,7 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     generate_from_template(package_dir, "CMakeLists.txt")
     with open(package_dir / "simple_scikit_build_core" / "__init__.py", "w") as f:
         f.write("# Empty package file\n")
+    commit = _init_git_repo(package_dir)
 
     with patch_nvcc_if_needed(nvcc_version):
         name, build_requires, requirements, extras, files = _generate_wheel(
@@ -267,4 +286,4 @@ def test_simple_scikit_build_core(tmp_path, env, nvcc_version):
     assert requirements == {f"cupy-cuda{nvcc_version}x>=12.0.0"}
     assert extras == {"jit": set()}
     assert "simple_scikit_build_core/__init__.py" in files
-    assert "simple_scikit_build_core/GIT_COMMIT" in files
+    assert files["simple_scikit_build_core/GIT_COMMIT"] == f"{commit}\n".encode()

@@ -33,12 +33,15 @@ def set_cwd(cwd):
         os.chdir(old_cwd)
 
 
-def _make_executable(directory, name, stdout):
-    """Write a fake executable that prints ``stdout``, runnable without a shell PATH."""
+def _make_executable(directory, name, stdout, returncode=0):
+    """Write a fake executable that prints ``stdout`` and exits with ``returncode``,
+    runnable without a shell PATH."""
     os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, name)
     with open(path, "w") as f:
-        f.write(f"#!{sys.executable}\nprint({stdout!r})\n")
+        f.write(
+            f"#!{sys.executable}\nprint({stdout!r})\nraise SystemExit({returncode})\n"
+        )
     os.chmod(path, 0o755)
     return path
 
@@ -71,6 +74,15 @@ def test_get_git_commit_does_not_need_which(tmp_path, monkeypatch):
 
 def test_get_git_commit_git_not_found(tmp_path, monkeypatch):
     monkeypatch.setenv("PATH", str(tmp_path))
+    assert _get_git_commit.__wrapped__() is None
+
+
+def test_get_git_commit_not_a_git_repository(tmp_path, monkeypatch):
+    # Outside a git repository (e.g. when building a wheel from an unpacked sdist),
+    # 'git rev-parse HEAD' prints nothing to stdout and exits with status 128.
+    bin_dir = tmp_path / "bin"
+    _make_executable(bin_dir, "git", "", returncode=128)
+    monkeypatch.setenv("PATH", str(bin_dir))
     assert _get_git_commit.__wrapped__() is None
 
 
