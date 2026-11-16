@@ -126,7 +126,8 @@ def _get_git_commit() -> str | None:
     git = shutil.which("git")
     if git is not None:
         process_output = subprocess.run([git, "rev-parse", "HEAD"], capture_output=True)
-        return process_output.stdout.decode().strip()
+        if process_output.returncode == 0:
+            return process_output.stdout.decode().strip()
     return None
 
 
